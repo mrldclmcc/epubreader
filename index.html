@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPUB Reader</title>
+
+    <!-- Preload & load fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300..700;1,300..700&family=OpenDyslexic:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+
+    <!-- JSZip for in-browser EPUB extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ==========================================================================
+           1. Core Variables & Theme
+           ========================================================================== */
+        :root {
+            --font-base: clamp(1rem, 1.125rem + 0.5vw, 1.25rem);
+            --font-scale: 1.25;
+            --font-multiplier: 1;
+            --line-height: 1.6;
+            --measure: 65ch;
+            --rhythm: 1.6em;
+            --font-family: "Crimson Pro", "Georgia", "Cambria", "Times New Roman", serif;
+            --transition-theme: 0.3s ease;
+
+            /* Light Theme (Default) */
+            --color-text: #1a1a1a;
+            --color-bg: #fcf9f2;
+            --color-link: #004080;
+            --color-meta: #6b6b6b;
+            --color-divider: rgba(0,0,0,0.1);
+            --color-focus: #004080;
+            --color-panel: #ffffff;
+            --color-hover: #f0ede6;
+            --color-overlay: rgba(0,0,0,0.3);
+        }
+
+        /* Dark Theme Override */
+        [data-theme="dark"] {
+            --color-text: #e8e4db;
+            --color-bg: #1a1714;
+            --color-link: #6ba6d9;
+            --color-meta: #8a867c;
+            --color-divider: rgba(255,255,255,0.1);
+            --color-focus: #6ba6d9;
+            --color-panel: #2a2520;
+            --color-hover: #332d28;
+            --color-overlay: rgba(0,0,0,0.6);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]):not([data-theme="dark"]) {
+                --color-text: #e8e4db;
+                --color-bg: #1a1714;
+                --color-link: #6ba6d9;
+                --color-meta: #8a867c;
+                --color-divider: rgba(255,255,255,0.1);
+                --color-focus: #6ba6d9;
+                --color-panel: #2a2520;
+                --color-hover: #332d28;
+                --color-overlay: rgba(0,0,0,0.6);
+            }
+        }
+
+        /* ==========================================================================
+           2. CSS Reset & Base Typography
+           ========================================================================== */
+        *, *::before, *::after { box-sizing: border-box; }
+        html { font-size: 100%; scroll-behavior: smooth; }
+        body {
+            margin: 0; padding: 0;
+            font-family: var(--font-family);
+            font-size: calc(var(--font-base) * var(--font-multiplier));
+            line-height: var(--line-height);
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            transition: color var(--transition-theme), background-color var(--transition-theme);
+            font-feature-settings: "kern" 1, "liga" 1, "onum" 1, "pnum" 1;
+            font-variant-numeric: oldstyle-nums proportional-nums;
+            font-variant-ligatures: common-ligatures contextual;
+            text-rendering: optimizeLegibility;
+        }
+
+        /* Hide images toggle */
+        .hide-images img,
+        .hide-images image,
+        .hide-images svg image {
+            display: none !important;
+        }
+
+        /* Links & Anchors */
+        a { color: var(--color-link); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+        a:not([href]) { color: inherit; text-decoration: none; cursor: text; }
+
+        /* Image Constraints */
+        img, svg, image {
+            max-width: 100%;
+            max-height: 70vh;
+            height: auto;
+            display: block;
+            margin: 2.5rem auto;
+            border-radius: 4px;
+        }
+
+        /* ==========================================================================
+           3. Layout & Reading Experience
+           ========================================================================== */
+        .view-container { display: none; min-height: 100vh; }
+        .view-container.active { display: block; }
+        #setup-view.active { display: flex; }
+
+        #setup-view {
+            flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 2rem; min-height: 100vh;
+        }
+        #drop-zone {
+            display: flex; flex-direction: column; align-items: center; max-width: 520px; margin: 0 auto; margin-top: 10vh;
+            padding: 3rem 2rem; border: 2px dashed transparent; border-radius: 1rem;
+            transition: all var(--transition-theme);
+        }
+        #drop-zone.dragover {
+            border-color: var(--color-link);
+            background-color: var(--color-hover);
+        }
+        #setup-view h1 { font-size: calc(1rem * 2.441); font-weight: 700; margin-bottom: 1rem; }
+
+        .upload-btn {
+            display: inline-block; margin-top: 2rem; padding: 0.8rem 1.5rem;
+            border: 1px solid var(--color-divider); border-radius: 2rem;
+            cursor: pointer; font-family: inherit; font-size: 1rem;
+            background: transparent; color: var(--color-text);
+            transition: all var(--transition-theme);
+        }
+        .upload-btn:hover { border-color: var(--color-link); background-color: var(--color-divider); }
+
+        #error-msg {
+            color: #b33;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            min-height: 1.5em;
+        }
+        [data-theme="dark"] #error-msg { color: #ff8a8a; }
+
+        /* Reader Layout */
+        #book-content {
+            max-inline-size: var(--measure); margin-inline: auto;
+            padding-inline: clamp(1.5rem, 4vw, 3rem); padding-top: 6rem; padding-bottom: 6rem;
+        }
+
+        #book-content p { text-wrap: pretty; margin-top: 0; margin-bottom: var(--rhythm); }
+        #book-content p + p { text-indent: 1.5em; margin-top: calc(var(--rhythm) * -0.5); }
+        #book-content h1, #book-content h2, #book-content h3, #book-content h4 {
+            text-wrap: balance; font-weight: 700; color: var(--color-text); clear: both;
+        }
+        #book-content h1 { font-size: calc(1rem * 2.441); line-height: 1.2; margin-top: 3rem; margin-bottom: 1rem; }
+        #book-content h2 { font-size: calc(1rem * 1.953); line-height: 1.2; margin-top: 2.5rem; margin-bottom: 0.8rem; }
+        #book-content h3 { font-size: calc(1rem * 1.563); line-height: 1.3; margin-top: 2rem; margin-bottom: 0.5rem; }
+
+        #book-content > p:first-of-type::first-letter {
+            font-size: 3.5em; float: left; line-height: 0.8; margin-right: 0.1em; font-weight: 700;
+        }
+        #book-content blockquote {
+            hanging-punctuation: first allow-end; margin-inline: 1.5em; font-style: italic;
+            border-left: 2px solid var(--color-divider); padding-left: 1rem;
+        }
+
+        /* ==========================================================================
+           4. Header & Top Nav
+           ========================================================================== */
+        #reader-header {
+            position: fixed; top: 0; left: 0; right: 0;
+            padding: 0.8rem 1.5rem; background: var(--color-bg);
+            border-bottom: 1px solid var(--color-divider);
+            display: flex; justify-content: space-between; align-items: center;
+            opacity: 0; transform: translateY(-100%); transition: all 0.3s ease; z-index: 100;
+        }
+        #reader-header.visible { opacity: 1; transform: translateY(0); }
+
+        .header-left, .header-right { display: flex; align-items: center; gap: 0.5rem; }
+        .header-center { flex-grow: 1; display: flex; justify-content: center; gap: 1rem; }
+
+        .header-title {
+            font-size: 0.9rem; color: var(--color-meta); white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; max-width: 30vw; margin-left: 1rem;
+            display: none;
+        }
+        @media(min-width: 768px) { .header-title { display: block; } }
+
+        .icon-btn {
+            background: none; border: 1px solid var(--color-divider); border-radius: 2rem;
+            padding: 0.4rem 0.8rem; color: var(--color-text); cursor: pointer;
+            font-size: 0.875rem; font-family: inherit; transition: all var(--transition-theme);
+        }
+        .icon-btn:hover:not(:disabled) { border-color: var(--color-link); background-color: var(--color-divider); }
+        .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* ==========================================================================
+           5. Panels (TOC & Settings) + Overlay
+           ========================================================================== */
+        #overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--color-overlay);
+            z-index: 150;
+            display: none;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+        #overlay.open {
+            display: block;
+            opacity: 1;
+        }
+
+        .side-panel {
+            position: fixed; top: 0; height: 100vh; background: var(--color-panel);
+            box-shadow: 0 0 20px rgba(0,0,0,0.1); padding: 2rem; transition: transform 0.3s ease;
+            z-index: 200; overflow-y: auto; width: 320px; max-width: 100vw;
+        }
+        #toc-panel { left: 0; transform: translateX(-100%); border-right: 1px solid var(--color-divider); }
+        #toc-panel.open { transform: translateX(0); }
+
+        #settings-panel { right: 0; transform: translateX(100%); border-left: 1px solid var(--color-divider); }
+        #settings-panel.open { transform: translateX(0); }
+
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .panel-header h3 { margin: 0; font-size: 1.2rem; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; color: var(--color-text); cursor: pointer; padding: 0; }
+
+        /* TOC List */
+        #toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+        #toc-list li a {
+            display: block; padding: 0.5rem; color: var(--color-text); text-decoration: none;
+            border-radius: 0.25rem; transition: background 0.2s; font-size: 0.95rem; line-height: 1.4;
+        }
+        #toc-list li a:hover { background: var(--color-hover); color: var(--color-link); }
+
+        /* Settings Form */
+        .setting-group { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .setting-group label {
+            font-size: 0.85rem; font-weight: 700; color: var(--color-meta); text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .setting-group select, .setting-group input[type="range"] {
+            width: 100%; padding: 0.5rem; font-family: inherit; background: var(--color-bg);
+            border: 1px solid var(--color-divider); color: var(--color-text); border-radius: 0.25rem;
+        }
+        .setting-group small { font-size: 0.8rem; color: var(--color-meta); line-height: 1.3; }
+
+        /* Footer */
+        #reader-footer {
+            max-inline-size: var(--measure); margin-inline: auto; padding: 2rem clamp(1.5rem, 4vw, 3rem);
+            border-top: 1px solid var(--color-divider); display: flex; justify-content: space-between; align-items: center;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- OVERLAY -->
+    <div id="overlay"></div>
+
+    <!-- VIEW: SETUP -->
+    <div id="setup-view" class="view-container active">
+        <div id="drop-zone">
+            <h1>EPUB Reader</h1>
+            <p>Upload an EPUB file. It will be processed entirely within your browser for a private, focused reading experience, prioritizing clean web typography.</p>
+            <p style="color: var(--color-meta); margin: 2rem 0 1rem 0;">Drag and drop your file here, or...</p>
+            <label for="epub-upload" class="upload-btn" style="margin-top: 0;">Select EPUB Book</label>
+            <input type="file" id="epub-upload" accept=".epub" style="display:none">
+
+            <p id="loading-msg" class="hidden" style="color: var(--color-meta); margin-top: 1.5rem; font-size: 0.9rem;">
+                Unpacking, analyzing structure, and optimizing typography...
+            </p>
+            <div id="error-msg"></div>
+        </div>
+    </div>
+
+    <!-- VIEW: READER -->
+    <div id="reader-view" class="view-container">
+
+        <!-- Header -->
+        <header id="reader-header" class="visible">
+            <div class="header-left">
+                <button id="toggle-toc" class="icon-btn" aria-label="Table of Contents">☰ Contents</button>
+                <div class="header-title" id="book-title">Unknown Title</div>
+            </div>
+
+            <div class="header-center">
+                <button id="top-btn-prev" class="icon-btn" aria-label="Previous Section">← Prev</button>
+                <button id="top-btn-next" class="icon-btn" aria-label="Next Section">Next →</button>
+            </div>
+
+            <div class="header-right">
+                <button id="toggle-settings" class="icon-btn" aria-label="Open settings">Options</button>
+            </div>
+        </header>
+
+        <!-- TOC Panel -->
+        <aside id="toc-panel" class="side-panel">
+            <div class="panel-header">
+                <h3>Table of Contents</h3>
+                <button id="close-toc" class="close-btn" aria-label="Close TOC">×</button>
+            </div>
+            <ul id="toc-list">
+                <li style="color: var(--color-meta); font-style: italic;">Extracting navigation...</li>
+            </ul>
+        </aside>
+
+        <!-- Settings Panel -->
+        <aside id="settings-panel" class="side-panel">
+            <div class="panel-header">
+                <h3>Settings</h3>
+                <button id="close-settings" class="close-btn" aria-label="Close settings">×</button>
+            </div>
+
+            <div class="setting-group">
+                <label>Theme</label>
+                <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode">☀️ Light mode</button>
+            </div>
+
+            <div class="setting-group">
+                <label for="font-size-adjust">Text Size</label>
+                <input type="range" id="font-size-adjust" min="0.8" max="1.5" step="0.05" value="1">
+            </div>
+
+            <div class="setting-group">
+                <label for="font-family-select">Font Family</label>
+                <select id="font-family-select">
+                    <option value="'Crimson Pro', Georgia, Cambria, serif">Crimson Pro</option>
+                    <option value="Georgia, 'Times New Roman', serif">Georgia</option>
+                    <option value="Arial, Helvetica, sans-serif">Arial</option>
+                    <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                    <option value="'OpenDyslexic', 'Comic Sans', sans-serif">OpenDyslexic</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label for="line-height-slider">Line Height</label>
+                <input type="range" id="line-height-slider" min="1.0" max="2.5" step="0.1" value="1.6">
+            </div>
+
+            <div class="setting-group">
+                <label for="column-width-slider">Column Width (characters)</label>
+                <input type="range" id="column-width-slider" min="40" max="80" step="1" value="65">
+            </div>
+
+            <div class="setting-group">
+                <label for="toggle-images">
+                    <input type="checkbox" id="toggle-images" checked> Show images
+                </label>
+            </div>
+        </aside>
+
+        <!-- Book Content -->
+        <main id="book-content">
+            <!-- Rendered HTML goes here -->
+        </main>
+
+        <!-- Footer Navigation -->
+        <footer id="reader-footer">
+            <button id="bottom-btn-prev" class="icon-btn">← Previous</button>
+            <span id="chapter-progress" style="font-size: 0.9rem; color: var(--color-meta);"></span>
+            <button id="bottom-btn-next" class="icon-btn">Next →</button>
+        </footer>
+    </div>
+
+    <script>
+        /**
+         * 1. Application State
+         */
+        const AppState = {
+            zip: null,
+            rawSpineItems: [],
+            spineHrefs: [],
+            processedChapters: [],
+            currentChapterIndex: 0,
+            bookTitle: "Unknown Title",
+            bookHash: "" // used for progress storage
+        };
+
+        /**
+         * 2. Theme & Settings Management
+         */
+        const html = document.documentElement;
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const fontSizeSlider = document.getElementById('font-size-adjust');
+        const fontFamilySelect = document.getElementById('font-family-select');
+        const lineHeightSlider = document.getElementById('line-height-slider');
+        const columnWidthSlider = document.getElementById('column-width-slider');
+        const imageToggle = document.getElementById('toggle-images');
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const saved = localStorage.getItem('epubReaderSettings');
+            if (saved) {
+                try {
+                    const settings = JSON.parse(saved);
+                    if (settings.theme) html.setAttribute('data-theme', settings.theme);
+                    else html.removeAttribute('data-theme');
+                    if (settings.fontSize) fontSizeSlider.value = settings.fontSize;
+                    if (settings.fontFamily) fontFamilySelect.value = settings.fontFamily;
+                    if (settings.lineHeight) lineHeightSlider.value = settings.lineHeight;
+                    if (settings.columnWidth) columnWidthSlider.value = settings.columnWidth;
+                    if (settings.showImages !== undefined) imageToggle.checked = settings.showImages;
+                } catch (e) { /* ignore */ }
+            }
+            // Apply settings to DOM
+            applyAllSettings();
+        }
+
+        function saveSettings() {
+            const settings = {
+                theme: html.getAttribute('data-theme') || 'light',
+                fontSize: fontSizeSlider.value,
+                fontFamily: fontFamilySelect.value,
+                lineHeight: lineHeightSlider.value,
+                columnWidth: columnWidthSlider.value,
+                showImages: imageToggle.checked
+            };
+            localStorage.setItem('epubReaderSettings', JSON.stringify(settings));
+        }
+
+        function applyAllSettings() {
+            // Theme already applied via attribute
+            document.documentElement.style.setProperty('--font-multiplier', fontSizeSlider.value);
+            document.documentElement.style.setProperty('--font-family', fontFamilySelect.value);
+            document.documentElement.style.setProperty('--line-height', lineHeightSlider.value);
+            document.documentElement.style.setProperty('--measure', columnWidthSlider.value + 'ch');
+
+            // Image visibility
+            if (imageToggle.checked) {
+                document.body.classList.remove('hide-images');
+            } else {
+                document.body.classList.add('hide-images');
+            }
+
+            updateThemeButtonLabel();
+        }
+
+        function updateThemeButtonLabel() {
+            const currentTheme = html.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                themeToggleBtn.textContent = '☀️ Light mode';
+                themeToggleBtn.setAttribute('aria-label', 'Switch to light mode');
+            } else {
+                themeToggleBtn.textContent = '🌙 Dark mode';
+                themeToggleBtn.setAttribute('aria-label', 'Switch to dark mode');
+            }
+        }
+
+        // Event listeners for settings
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                html.setAttribute('data-theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+            }
+            saveSettings();
+            updateThemeButtonLabel();
+        });
+
+        fontSizeSlider.addEventListener('input', (e) => {
+            applyAllSettings();
+            saveSettings();
+        });
+
+        fontFamilySelect.addEventListener('change', () => {
+            applyAllSettings();
+            saveSettings();
+        });
+
+        lineHeightSlider.addEventListener('input', () => {
+            applyAllSettings();
+            saveSettings();
+        });
+
+        columnWidthSlider.addEventListener('input', () => {
+            applyAllSettings();
+            saveSettings();
+        });
+
+        imageToggle.addEventListener('change', () => {
+            applyAllSettings();
+            saveSettings();
+        });
+
+        // Panel toggles with overlay
+        const overlay = document.getElementById('overlay');
+        const tocPanel = document.getElementById('toc-panel');
+        const settingsPanel = document.getElementById('settings-panel');
+
+        function openPanel(panel) {
+            panel.classList.add('open');
+            overlay.classList.add('open');
+        }
+
+        function closeAllPanels() {
+            tocPanel.classList.remove('open');
+            settingsPanel.classList.remove('open');
+            overlay.classList.remove('open');
+        }
+
+        document.getElementById('toggle-toc').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (tocPanel.classList.contains('open')) {
+                closeAllPanels();
+            } else {
+                openPanel(tocPanel);
+            }
+        });
+
+        document.getElementById('toggle-settings').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (settingsPanel.classList.contains('open')) {
+                closeAllPanels();
+            } else {
+                openPanel(settingsPanel);
+            }
+        });
+
+        document.getElementById('close-toc').addEventListener('click', closeAllPanels);
+        document.getElementById('close-settings').addEventListener('click', closeAllPanels);
+        overlay.addEventListener('click', closeAllPanels);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Prevent if input/textarea focused
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    goPrev();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    goNext();
+                    break;
+                case 't':
+                case 'T':
+                    e.preventDefault();
+                    document.getElementById('toggle-toc').click();
+                    break;
+                case 's':
+                case 'S':
+                    e.preventDefault();
+                    document.getElementById('toggle-settings').click();
+                    break;
+                case 'Escape':
+                    closeAllPanels();
+                    break;
+            }
+        });
+
+        // =========================================================================
+        // 3. EPUB Parsing Engine
+        // =========================================================================
+        const uploadInput = document.getElementById('epub-upload');
+        const loadingMsg = document.getElementById('loading-msg');
+        const dropZone = document.getElementById('drop-zone');
+        const errorMsg = document.getElementById('error-msg');
+
+        function showError(text) {
+            errorMsg.textContent = text;
+        }
+
+        function clearError() {
+            errorMsg.textContent = '';
+        }
+
+        // Drag and Drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files && files.length > 0) {
+                handleFile(files[0]);
+            }
+        }, false);
+
+        uploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        // Unified File Handler
+        async function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.epub')) {
+                showError("Please select a valid .epub file.");
+                return;
+            }
+            clearError();
+
+            loadingMsg.classList.remove('hidden');
+            try {
+                await processEpubFile(file);
+                document.getElementById('setup-view').classList.remove('active');
+                document.getElementById('reader-view').classList.add('active');
+
+                // Restore progress for this book (if any)
+                const savedIndex = localStorage.getItem('epubProgress_' + AppState.bookHash);
+                if (savedIndex !== null) {
+                    const idx = parseInt(savedIndex, 10);
+                    if (idx >= 0 && idx < AppState.processedChapters.length) {
+                        AppState.currentChapterIndex = idx;
+                    }
+                }
+
+                renderCurrentChapter();
+            } catch (err) {
+                console.error(err);
+                showError("Failed to parse EPUB file. Ensure it is a valid, un‑DRM format.");
+            } finally {
+                loadingMsg.classList.add('hidden');
+            }
+        }
+
+        async function processEpubFile(file) {
+            AppState.zip = await JSZip.loadAsync(file);
+            const zip = AppState.zip;
+            const parser = new DOMParser();
+
+            // Find OPF
+            const containerXml = await zip.file("META-INF/container.xml").async("string");
+            const containerDoc = parser.parseFromString(containerXml, "application/xml");
+            const rootfile = containerDoc.getElementsByTagName("rootfile")[0];
+            const opfPath = rootfile.getAttribute("full-path");
+            const prefix = opfPath.substring(0, opfPath.lastIndexOf('/')) ? opfPath.substring(0, opfPath.lastIndexOf('/')) + '/' : '';
+
+            // Parse OPF
+            const opfXml = await zip.file(opfPath).async("string");
+            const opfDoc = parser.parseFromString(opfXml, "application/xml");
+
+            const titleNode = opfDoc.getElementsByTagName("dc:title")[0];
+            if (titleNode) {
+                AppState.bookTitle = titleNode.textContent;
+                document.getElementById('book-title').textContent = AppState.bookTitle;
+            }
+
+            // Generate a simple hash from the title (or use file name) for progress storage
+            AppState.bookHash = btoa(encodeURIComponent(AppState.bookTitle + file.name)).slice(0, 20);
+
+            const manifestItems = Array.from(opfDoc.getElementsByTagName("item"));
+            const spineItems = Array.from(opfDoc.getElementsByTagName("itemref"));
+
+            const manifest = {};
+            manifestItems.forEach(item => {
+                manifest[item.getAttribute("id")] = item.getAttribute("href");
+            });
+
+            // Extract Spine HTML
+            AppState.rawSpineItems = [];
+            AppState.spineHrefs = [];
+
+            for (const itemref of spineItems) {
+                const id = itemref.getAttribute("idref");
+                if (!manifest[id]) continue;
+
+                const href = decodeURIComponent(manifest[id]);
+                const fullPath = prefix + href;
+
+                const fileObj = zip.file(fullPath);
+                if (!fileObj) continue;
+
+                let htmlStr = await fileObj.async("string");
+
+                // Cleanup and Asset Resolution
+                htmlStr = await resolveImages(htmlStr, fullPath);
+                htmlStr = stripPublisherStyles(htmlStr);
+
+                AppState.rawSpineItems.push(htmlStr);
+                AppState.spineHrefs.push(href);
+            }
+        }
+
+        async function resolveImages(htmlStr, currentFilePath) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlStr, "text/html");
+            const images = doc.querySelectorAll("img, image");
+
+            const currentDir = currentFilePath.substring(0, currentFilePath.lastIndexOf('/'));
+            const prefix = currentDir ? currentDir + '/' : '';
+
+            for (const img of Array.from(images)) {
+                let src = img.getAttribute("src") || img.getAttribute("href") || img.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+                if (!src || src.startsWith("http") || src.startsWith("data:")) continue;
+
+                const decodedSrc = decodeURIComponent(src);
+                const imgPath = resolveRelativePath(prefix, decodedSrc);
+
+                try {
+                    const imgFile = AppState.zip.file(imgPath);
+                    if (imgFile) {
+                        const blob = await imgFile.async("blob");
+                        const objUrl = URL.createObjectURL(blob);
+                        if (img.tagName.toLowerCase() === 'image') img.setAttribute("href", objUrl);
+                        else img.setAttribute("src", objUrl);
+                    }
+                } catch(e) { /* ignore missing images */ }
+            }
+            return doc.body.innerHTML;
+        }
+
+        function resolveRelativePath(base, rel) {
+            const stack = base.split('/').filter(p => p !== '');
+            const parts = rel.split('/');
+            for (const part of parts) {
+                if (part === '.' || part === '') continue;
+                if (part === '..') stack.pop();
+                else stack.push(part);
+            }
+            return stack.join('/');
+        }
+
+        function stripPublisherStyles(htmlStr) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlStr, "text/html");
+            doc.querySelectorAll("style, link[rel='stylesheet'], script").forEach(el => el.remove());
+            doc.querySelectorAll("*").forEach(el => el.removeAttribute("style"));
+            return doc.body.innerHTML;
+        }
+
+        // =========================================================================
+        // 4. Smart Book Segmentation & Dynamic TOC
+        // =========================================================================
+        function autoSegmentBook() {
+            const raw = AppState.rawSpineItems;
+            let chunks = [];
+
+            for (let i = 0; i < raw.length; i++) {
+                const textLen = raw[i].replace(/<[^>]+>/g, '').trim().length;
+                if (textLen > 10 || raw[i].includes('<img') || raw[i].includes('<image')) {
+                    chunks.push(raw[i]);
+                }
+            }
+
+            AppState.processedChapters = chunks;
+            generateDynamicTOC(chunks);
+            AppState.currentChapterIndex = 0;
+        }
+
+        function generateDynamicTOC(chunks) {
+            const tocListEl = document.getElementById('toc-list');
+            tocListEl.innerHTML = '';
+
+            chunks.forEach((chunk, index) => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(chunk, "text/html");
+
+                let titleText = '';
+                const heading = doc.querySelector('h1, h2, h3, h4');
+                if (heading && heading.textContent.trim().length > 0) {
+                    titleText = heading.textContent.trim();
+                } else {
+                    const p = doc.querySelector('p');
+                    if (p && p.textContent.trim().length > 0) {
+                        titleText = p.textContent.trim().split(' ').slice(0, 6).join(' ') + '...';
+                    } else {
+                        titleText = `Section ${index + 1}`;
+                    }
+                }
+
+                titleText = titleText.replace(/\s+/g, ' ');
+                if (titleText.length > 55) titleText = titleText.substring(0, 55) + '...';
+
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = "#";
+                a.textContent = titleText;
+                a.onclick = (e) => {
+                    e.preventDefault();
+                    goToChapter(index);
+                };
+                li.appendChild(a);
+                tocListEl.appendChild(li);
+            });
+
+            if (chunks.length === 0) {
+                tocListEl.innerHTML = '<li style="padding:1rem; color:var(--color-meta);">No content found to index.</li>';
+            }
+        }
+
+        // =========================================================================
+        // 5. Navigation & Rendering
+        // =========================================================================
+        function renderCurrentChapter() {
+            const contentDiv = document.getElementById('book-content');
+            const total = AppState.processedChapters.length;
+            const idx = AppState.currentChapterIndex;
+
+            if (total === 0) return;
+
+            contentDiv.innerHTML = AppState.processedChapters[idx];
+
+            document.getElementById('chapter-progress').textContent = `Section ${idx + 1} of ${total}`;
+
+            const isFirst = idx === 0;
+            const isLast = idx === total - 1;
+
+            document.getElementById('bottom-btn-prev').disabled = isFirst;
+            document.getElementById('top-btn-prev').disabled = isFirst;
+            document.getElementById('bottom-btn-next').disabled = isLast;
+            document.getElementById('top-btn-next').disabled = isLast;
+
+            // Save progress
+            if (AppState.bookHash) {
+                localStorage.setItem('epubProgress_' + AppState.bookHash, String(idx));
+            }
+
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        }
+
+        function goNext() {
+            if (AppState.currentChapterIndex < AppState.processedChapters.length - 1) {
+                AppState.currentChapterIndex++;
+                renderCurrentChapter();
+            }
+        }
+
+        function goPrev() {
+            if (AppState.currentChapterIndex > 0) {
+                AppState.currentChapterIndex--;
+                renderCurrentChapter();
+            }
+        }
+
+        function goToChapter(index) {
+            if (index >= 0 && index < AppState.processedChapters.length) {
+                AppState.currentChapterIndex = index;
+                renderCurrentChapter();
+                closeAllPanels();
+            }
+        }
+
+        document.getElementById('bottom-btn-prev').addEventListener('click', goPrev);
+        document.getElementById('top-btn-prev').addEventListener('click', goPrev);
+        document.getElementById('bottom-btn-next').addEventListener('click', goNext);
+        document.getElementById('top-btn-next').addEventListener('click', goNext);
+
+        // Override autoSegmentBook to also set chapters and then render after processing
+        const originalAutoSegment = autoSegmentBook;
+        autoSegmentBook = function() {
+            originalAutoSegment();
+            // Now that we have chapters, if we have a saved progress, we already set it in handleFile
+            // but we need to render after processing if we haven't already.
+        };
+
+        // Patch processEpubFile to call autoSegmentBook and then render (but we moved render to handleFile)
+        // We'll keep the flow: handleFile calls processEpubFile, then sets progress, then calls renderCurrentChapter.
+        // So we need to ensure autoSegmentBook is called inside processEpubFile.
+        // I'll add autoSegmentBook call at the end of processEpubFile.
+
+        // Override processEpubFile to call autoSegmentBook at the end.
+        const originalProcess = processEpubFile;
+        processEpubFile = async function(file) {
+            await originalProcess(file);
+            autoSegmentBook();
+        };
+
+        // Also we need to ensure that after processing, we set the current chapter index from saved progress.
+        // In handleFile we already do that.
+
+        // We need to define autoSegmentBook before calling it, but we already have.
+
+        // Now the flow is correct.
+
+        // =========================================================================
+        // 6. Header visibility (unchanged)
+        // =========================================================================
+        let lastScroll = 0;
+        const header = document.getElementById('reader-header');
+
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            if (currentScroll <= 0) {
+                header.classList.add('visible');
+            } else if (currentScroll < lastScroll) {
+                header.classList.add('visible');
+            } else {
+                header.classList.remove('visible');
+            }
+            lastScroll = currentScroll;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (e.clientY < 60) header.classList.add('visible');
+        });
+
+        // =========================================================================
+        // 7. Init
+        // =========================================================================
+        loadSettings();
+        // Ensure image toggle checkbox reflects class
+        applyAllSettings();
+    </script>
+</body>
+</html>
