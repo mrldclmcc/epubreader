@@ -168,6 +168,17 @@
             border-left: 2px solid var(--color-divider); padding-left: 1rem;
         }
 
+        /* Justified text: only enabled together with hyphenation, since justify
+           without hyphenation produces bad rag/whitespace rivers. Relies on the
+           <html lang="en"> attribute for the browser's hyphenation dictionary. */
+        #book-content.justify-on p,
+        #book-content.justify-on blockquote {
+            text-align: justify;
+            hyphens: auto;
+            -webkit-hyphens: auto;
+            -ms-hyphens: auto;
+        }
+
         /* ==========================================================================
            4. Header & Top Nav
            ========================================================================== */
@@ -248,6 +259,58 @@
         }
         .setting-group small { font-size: 0.8rem; color: var(--color-meta); line-height: 1.3; }
 
+        /* Chapter Strategy Modal */
+        #chapter-strategy-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--color-overlay); z-index: 250; display: none; opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #chapter-strategy-overlay.open { display: block; opacity: 1; }
+
+        #chapter-strategy-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--color-panel); border-radius: 0.75rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+            z-index: 260; width: 90%; max-width: 540px; max-height: 82vh;
+            overflow-y: auto; padding: 1.75rem 2rem; display: none;
+        }
+        #chapter-strategy-modal.open { display: block; }
+
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .modal-header h3 { margin: 0; font-size: 1.2rem; }
+        .modal-subtitle { color: var(--color-meta); font-size: 0.85rem; margin: 0 0 1.5rem 0; }
+
+        .strategy-option {
+            margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--color-divider);
+        }
+        .strategy-option label {
+            display: flex; align-items: center; gap: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.95rem;
+        }
+        .strategy-option label input[type="radio"] { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
+        .strategy-option small { display: block; color: var(--color-meta); margin-top: 0.35rem; margin-left: 1.75rem; line-height: 1.4; }
+
+        #heading-tag-options { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; margin-left: 1.75rem; }
+        #heading-tag-options button.selected { border-color: var(--color-link); background-color: var(--color-hover); }
+
+        .strategy-preview h4 {
+            font-size: 0.85rem; font-weight: 700; color: var(--color-meta); text-transform: uppercase;
+            letter-spacing: 0.05em; margin: 0 0 0.6rem 0;
+        }
+        .strategy-preview ol {
+            max-height: 220px; overflow-y: auto; padding-left: 1.4rem; margin: 0;
+            font-size: 0.85rem; color: var(--color-text); background: var(--color-bg);
+            border: 1px solid var(--color-divider); border-radius: 0.5rem; padding: 0.75rem 0.75rem 0.75rem 2rem;
+        }
+        .strategy-preview ol li { margin-bottom: 0.35rem; }
+
+        .modal-footer { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; }
+        #toc-strategy-link {
+            width: 100%; text-align: left; margin-bottom: 1.25rem; font-size: 0.8rem;
+            color: var(--color-meta); background: none; border: none; cursor: pointer; padding: 0;
+            text-decoration: underline; text-underline-offset: 3px;
+        }
+        #toc-strategy-link:hover { color: var(--color-link); }
+
         /* Footer */
         #reader-footer {
             max-inline-size: var(--measure); margin-inline: auto; padding: 2rem clamp(1.5rem, 4vw, 3rem);
@@ -303,6 +366,7 @@
                 <h3>Table of Contents</h3>
                 <button id="close-toc" class="close-btn" aria-label="Close TOC">×</button>
             </div>
+            <button id="toc-strategy-link" type="button">Chapters look wrong? Fix splitting →</button>
             <ul id="toc-list">
                 <li style="color: var(--color-meta); font-style: italic;">Extracting navigation...</li>
             </ul>
@@ -351,7 +415,56 @@
                     <input type="checkbox" id="toggle-images" checked> Show images
                 </label>
             </div>
+
+            <div class="setting-group">
+                <label for="toggle-justify">
+                    <input type="checkbox" id="toggle-justify"> Justify text
+                </label>
+                <small>Enables hyphenation and improved line-breaking together, for clean margins on both sides.</small>
+            </div>
         </aside>
+
+        <!-- Chapter Strategy Modal -->
+        <div id="chapter-strategy-overlay"></div>
+        <div id="chapter-strategy-modal">
+            <div class="modal-header">
+                <h3>Chapter Splitting</h3>
+                <button id="close-chapter-strategy" class="close-btn" aria-label="Close">×</button>
+            </div>
+            <p class="modal-subtitle">Choose how this book is divided into chapters. Preview the result before applying.</p>
+
+            <div class="strategy-option">
+                <label>
+                    <input type="radio" name="chapter-strategy" value="spine" checked>
+                    Automatic (default)
+                </label>
+                <small>One chapter per file in the book's reading order. Works well for most EPUBs.</small>
+            </div>
+
+            <div class="strategy-option">
+                <label>
+                    <input type="radio" name="chapter-strategy" value="nav" id="strategy-nav-radio">
+                    Use book's own Table of Contents
+                </label>
+                <small id="strategy-nav-note">Checking availability…</small>
+            </div>
+
+            <div class="strategy-option" style="border-bottom: none; margin-bottom: 0.5rem;">
+                <label style="font-weight: 700;">Split by heading tag</label>
+                <small>Choose a heading level found in this book; each occurrence starts a new chapter.</small>
+                <div id="heading-tag-options"></div>
+            </div>
+
+            <div class="strategy-preview">
+                <h4>Preview</h4>
+                <ol id="strategy-preview-list"></ol>
+            </div>
+
+            <div class="modal-footer">
+                <button id="cancel-chapter-strategy" class="icon-btn">Cancel</button>
+                <button id="apply-chapter-strategy" class="upload-btn" style="margin-top: 0;">Apply</button>
+            </div>
+        </div>
 
         <!-- Book Content -->
         <main id="book-content">
@@ -374,10 +487,16 @@
             zip: null,
             rawSpineItems: [],
             spineHrefs: [],
-            processedChapters: [],
+            spineFullPaths: [],
+            opfPath: "",
+            opfPrefix: "",
+            processedChapters: [], // array of { html, anchorId, title? }
             currentChapterIndex: 0,
             bookTitle: "Unknown Title",
-            bookHash: "" // used for progress storage
+            bookHash: "", // used for progress storage
+            resolvedNavEntries: null, // [{ title, spineIndex, anchorId }] or null if unavailable
+            headingTagCounts: {},     // { h1: n, h2: n, h3: n, h4: n }
+            chapterStrategy: 'spine'  // 'spine' | 'nav' | 'heading:h2' etc.
         };
 
         /**
@@ -390,6 +509,7 @@
         const lineHeightSlider = document.getElementById('line-height-slider');
         const columnWidthSlider = document.getElementById('column-width-slider');
         const imageToggle = document.getElementById('toggle-images');
+        const justifyToggle = document.getElementById('toggle-justify');
 
         // Load settings from localStorage
         function loadSettings() {
@@ -404,6 +524,7 @@
                     if (settings.lineHeight) lineHeightSlider.value = settings.lineHeight;
                     if (settings.columnWidth) columnWidthSlider.value = settings.columnWidth;
                     if (settings.showImages !== undefined) imageToggle.checked = settings.showImages;
+                    if (settings.justifyText !== undefined) justifyToggle.checked = settings.justifyText;
                 } catch (e) { /* ignore */ }
             }
             // Apply settings to DOM
@@ -417,7 +538,8 @@
                 fontFamily: fontFamilySelect.value,
                 lineHeight: lineHeightSlider.value,
                 columnWidth: columnWidthSlider.value,
-                showImages: imageToggle.checked
+                showImages: imageToggle.checked,
+                justifyText: justifyToggle.checked
             };
             localStorage.setItem('epubReaderSettings', JSON.stringify(settings));
         }
@@ -434,6 +556,14 @@
                 document.body.classList.remove('hide-images');
             } else {
                 document.body.classList.add('hide-images');
+            }
+
+            // Justified text (bundled with hyphenation + text-wrap: pretty via CSS)
+            const bookContentEl = document.getElementById('book-content');
+            if (justifyToggle.checked) {
+                bookContentEl.classList.add('justify-on');
+            } else {
+                bookContentEl.classList.remove('justify-on');
             }
 
             updateThemeButtonLabel();
@@ -483,6 +613,11 @@
         });
 
         imageToggle.addEventListener('change', () => {
+            applyAllSettings();
+            saveSettings();
+        });
+
+        justifyToggle.addEventListener('change', () => {
             applyAllSettings();
             saveSettings();
         });
@@ -646,6 +781,8 @@
             const rootfile = containerDoc.getElementsByTagName("rootfile")[0];
             const opfPath = rootfile.getAttribute("full-path");
             const prefix = opfPath.substring(0, opfPath.lastIndexOf('/')) ? opfPath.substring(0, opfPath.lastIndexOf('/')) + '/' : '';
+            AppState.opfPath = opfPath;
+            AppState.opfPrefix = prefix;
 
             // Parse OPF
             const opfXml = await zip.file(opfPath).async("string");
@@ -671,6 +808,7 @@
             // Extract Spine HTML
             AppState.rawSpineItems = [];
             AppState.spineHrefs = [];
+            AppState.spineFullPaths = [];
 
             for (const itemref of spineItems) {
                 const id = itemref.getAttribute("idref");
@@ -690,7 +828,24 @@
 
                 AppState.rawSpineItems.push(htmlStr);
                 AppState.spineHrefs.push(href);
+                AppState.spineFullPaths.push(fullPath);
             }
+
+            // Attempt to parse the book's own table of contents (EPUB3 nav or EPUB2 NCX).
+            // This is used only as an optional alternate chapter-splitting strategy;
+            // the default segmentation below doesn't depend on it.
+            try {
+                const navEntries = await parseBookNav();
+                AppState.resolvedNavEntries = navEntries ? resolveNavEntriesToSpine(navEntries) : null;
+            } catch (e) {
+                console.error("Nav parse failed:", e);
+                AppState.resolvedNavEntries = null;
+            }
+
+            AppState.headingTagCounts = scanHeadingTags();
+
+            // Default segmentation
+            applyChapterStrategy('spine');
         }
 
         async function resolveImages(htmlStr, currentFilePath) {
@@ -743,20 +898,199 @@
         // =========================================================================
         // 4. Smart Book Segmentation & Dynamic TOC
         // =========================================================================
-        function autoSegmentBook() {
+        // A "chunk" is { html, anchorId, title? }:
+        //  - html: the rendered content for this chapter
+        //  - anchorId: optional id/name to scroll to within that content once rendered
+        //              (used by the nav-based strategy, where several TOC entries can
+        //              point into different anchors of the same underlying file)
+        //  - title: optional pre-supplied title (nav strategy); otherwise derived
+
+        // --- Strategy: spine order (default) ---
+        function buildSpineChunks() {
             const raw = AppState.rawSpineItems;
             let chunks = [];
-
             for (let i = 0; i < raw.length; i++) {
                 const textLen = raw[i].replace(/<[^>]+>/g, '').trim().length;
                 if (textLen > 10 || raw[i].includes('<img') || raw[i].includes('<image')) {
-                    chunks.push(raw[i]);
+                    chunks.push({ html: raw[i], anchorId: null });
+                }
+            }
+            return chunks;
+        }
+
+        // --- Strategy: the book's own table of contents (nav.xhtml / NCX) ---
+        async function parseBookNav() {
+            const zip = AppState.zip;
+            if (!zip) return null;
+            const parser = new DOMParser();
+            const opfXml = await zip.file(AppState.opfPath).async("string");
+            const opfDoc = parser.parseFromString(opfXml, "application/xml");
+            const items = Array.from(opfDoc.getElementsByTagName("item"));
+
+            // EPUB3: manifest item with properties="nav"
+            const navItem = items.find(it => (it.getAttribute("properties") || "").includes("nav"));
+            if (navItem) {
+                const navHref = decodeURIComponent(navItem.getAttribute("href"));
+                const navPath = resolveRelativePath(AppState.opfPrefix, navHref);
+                const navFile = zip.file(navPath);
+                if (navFile) {
+                    const navXml = await navFile.async("string");
+                    const navDoc = parser.parseFromString(navXml, "text/html");
+                    const navEls = Array.from(navDoc.querySelectorAll('nav'));
+                    const tocNav = navEls.find(n => (n.getAttribute('epub:type') || '').includes('toc')) || navEls[0];
+                    if (tocNav) {
+                        const navDir = navPath.substring(0, navPath.lastIndexOf('/'));
+                        const navPrefix = navDir ? navDir + '/' : '';
+                        const links = Array.from(tocNav.querySelectorAll('a[href]'));
+                        const entries = links
+                            .map(a => ({
+                                title: a.textContent.trim().replace(/\s+/g, ' '),
+                                href: resolveRelativePath(navPrefix, decodeURIComponent(a.getAttribute('href')))
+                            }))
+                            .filter(e => e.title.length > 0);
+                        if (entries.length > 0) return entries;
+                    }
                 }
             }
 
+            // EPUB2 fallback: NCX file (media-type application/x-dtbncx+xml)
+            const ncxItem = items.find(it => (it.getAttribute("media-type") || "") === "application/x-dtbncx+xml");
+            if (ncxItem) {
+                const ncxHref = decodeURIComponent(ncxItem.getAttribute("href"));
+                const ncxPath = resolveRelativePath(AppState.opfPrefix, ncxHref);
+                const ncxFile = zip.file(ncxPath);
+                if (ncxFile) {
+                    const ncxXml = await ncxFile.async("string");
+                    const ncxDoc = parser.parseFromString(ncxXml, "application/xml");
+                    const navPoints = Array.from(ncxDoc.getElementsByTagName("navPoint"));
+                    const ncxDir = ncxPath.substring(0, ncxPath.lastIndexOf('/'));
+                    const ncxPrefix = ncxDir ? ncxDir + '/' : '';
+                    const entries = navPoints.map(np => {
+                        const label = np.getElementsByTagName("text")[0];
+                        const content = np.getElementsByTagName("content")[0];
+                        if (!label || !content) return null;
+                        const src = content.getAttribute("src");
+                        if (!src) return null;
+                        return {
+                            title: label.textContent.trim().replace(/\s+/g, ' '),
+                            href: resolveRelativePath(ncxPrefix, decodeURIComponent(src))
+                        };
+                    }).filter(Boolean);
+                    if (entries.length > 0) return entries;
+                }
+            }
+
+            return null;
+        }
+
+        // Map each nav/NCX entry's (path#fragment) href onto a spine index + anchor id,
+        // so clicking a TOC entry can land on the exact point inside a spine file.
+        function resolveNavEntriesToSpine(navEntries) {
+            return navEntries.map(entry => {
+                const [pathPart, fragment] = entry.href.split('#');
+                const spineIndex = AppState.spineFullPaths.findIndex(p => p === pathPart);
+                if (spineIndex === -1) return null;
+                return { title: entry.title, spineIndex, anchorId: fragment || null };
+            }).filter(Boolean);
+        }
+
+        function buildNavChunks(resolvedEntries) {
+            return resolvedEntries.map(entry => ({
+                html: AppState.rawSpineItems[entry.spineIndex],
+                anchorId: entry.anchorId,
+                title: entry.title
+            }));
+        }
+
+        // --- Strategy: split spine files by a chosen heading tag ---
+        // Assumes headings are direct children of <body>, which holds for the large
+        // majority of real-world EPUB spine files (flat chapter markup).
+        function buildHeadingChunks(tag) {
+            let chunks = [];
+            AppState.rawSpineItems.forEach(html => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const topLevel = Array.from(doc.body.children);
+                const hasHeading = topLevel.some(el => el.tagName.toLowerCase() === tag);
+
+                if (!hasHeading) {
+                    const textLen = doc.body.textContent.trim().length;
+                    if (textLen > 10 || html.includes('<img') || html.includes('<image')) {
+                        chunks.push({ html, anchorId: null });
+                    }
+                    return;
+                }
+
+                let current = [];
+                topLevel.forEach(el => {
+                    if (el.tagName.toLowerCase() === tag) {
+                        if (current.length > 0) {
+                            chunks.push({ html: current.map(n => n.outerHTML).join(''), anchorId: null });
+                        }
+                        current = [el];
+                    } else {
+                        current.push(el);
+                    }
+                });
+                if (current.length > 0) {
+                    chunks.push({ html: current.map(n => n.outerHTML).join(''), anchorId: null });
+                }
+            });
+            return chunks;
+        }
+
+        // Scan the whole book for how often each heading tag actually appears,
+        // so the strategy modal can only offer tags that are meaningfully present.
+        function scanHeadingTags() {
+            const counts = { h1: 0, h2: 0, h3: 0, h4: 0 };
+            AppState.rawSpineItems.forEach(html => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                ['h1', 'h2', 'h3', 'h4'].forEach(tag => {
+                    counts[tag] += doc.body.querySelectorAll(tag).length;
+                });
+            });
+            return counts;
+        }
+
+        function computeChunksForStrategy(strategy) {
+            if (strategy === 'nav' && AppState.resolvedNavEntries && AppState.resolvedNavEntries.length > 0) {
+                return buildNavChunks(AppState.resolvedNavEntries);
+            } else if (strategy && strategy.startsWith('heading:')) {
+                return buildHeadingChunks(strategy.split(':')[1]);
+            }
+            return buildSpineChunks();
+        }
+
+        function titleForChunk(chunk, index) {
+            if (chunk.title) return chunk.title; // nav strategy supplies its own titles
+            const doc = new DOMParser().parseFromString(chunk.html, 'text/html');
+            let titleText = '';
+            const heading = doc.querySelector('h1, h2, h3, h4');
+            if (heading && heading.textContent.trim().length > 0) {
+                titleText = heading.textContent.trim();
+            } else {
+                const textContent = doc.body.textContent.trim().replace(/\s+/g, ' ');
+                if (textContent.length > 0) {
+                    const words = textContent.split(' ');
+                    titleText = words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
+                } else {
+                    titleText = `Section ${index + 1}`;
+                }
+            }
+            titleText = titleText.replace(/\s+/g, ' ');
+            if (titleText.length > 55) titleText = titleText.substring(0, 55) + '...';
+            return titleText;
+        }
+
+        function applyChapterStrategy(strategy) {
+            const chunks = computeChunksForStrategy(strategy);
+            AppState.chapterStrategy = strategy;
             AppState.processedChapters = chunks;
             generateDynamicTOC(chunks);
             AppState.currentChapterIndex = 0;
+        }
+
+        function autoSegmentBook() {
+            applyChapterStrategy('spine');
         }
 
         function generateDynamicTOC(chunks) {
@@ -764,24 +1098,7 @@
             tocListEl.innerHTML = '';
 
             chunks.forEach((chunk, index) => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(chunk, "text/html");
-
-                let titleText = '';
-                const heading = doc.querySelector('h1, h2, h3, h4');
-                if (heading && heading.textContent.trim().length > 0) {
-                    titleText = heading.textContent.trim();
-                } else {
-                    const p = doc.querySelector('p');
-                    if (p && p.textContent.trim().length > 0) {
-                        titleText = p.textContent.trim().split(' ').slice(0, 6).join(' ') + '...';
-                    } else {
-                        titleText = `Section ${index + 1}`;
-                    }
-                }
-
-                titleText = titleText.replace(/\s+/g, ' ');
-                if (titleText.length > 55) titleText = titleText.substring(0, 55) + '...';
+                const titleText = titleForChunk(chunk, index);
 
                 const li = document.createElement('li');
                 const a = document.createElement('a');
@@ -810,7 +1127,8 @@
 
             if (total === 0) return;
 
-            contentDiv.innerHTML = AppState.processedChapters[idx];
+            const chunk = AppState.processedChapters[idx];
+            contentDiv.innerHTML = chunk.html;
 
             document.getElementById('chapter-progress').textContent = `Section ${idx + 1} of ${total}`;
 
@@ -827,7 +1145,24 @@
                 localStorage.setItem('epubProgress_' + AppState.bookHash, String(idx));
             }
 
-            window.scrollTo({ top: 0, behavior: 'auto' });
+            if (chunk.anchorId) {
+                // Nav-derived chapter: scroll to the specific point inside this
+                // chunk rather than just the top of the file.
+                requestAnimationFrame(() => {
+                    let target = null;
+                    try {
+                        target = contentDiv.querySelector(`#${CSS.escape(chunk.anchorId)}`) ||
+                                 contentDiv.querySelector(`[name="${CSS.escape(chunk.anchorId)}"]`);
+                    } catch (e) { /* invalid selector, ignore */ }
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'auto', block: 'start' });
+                    } else {
+                        window.scrollTo({ top: 0, behavior: 'auto' });
+                    }
+                });
+            } else {
+                window.scrollTo({ top: 0, behavior: 'auto' });
+            }
         }
 
         function goNext() {
@@ -857,57 +1192,144 @@
         document.getElementById('bottom-btn-next').addEventListener('click', goNext);
         document.getElementById('top-btn-next').addEventListener('click', goNext);
 
-        // Override autoSegmentBook to also set chapters and then render after processing
-        const originalAutoSegment = autoSegmentBook;
-        autoSegmentBook = function() {
-            originalAutoSegment();
-            // Now that we have chapters, if we have a saved progress, we already set it in handleFile
-            // but we need to render after processing if we haven't already.
-        };
+        // =========================================================================
+        // 6. Chapter Strategy Modal
+        // =========================================================================
+        const chapterStrategyOverlay = document.getElementById('chapter-strategy-overlay');
+        const chapterStrategyModal = document.getElementById('chapter-strategy-modal');
+        const navRadio = document.getElementById('strategy-nav-radio');
+        const navNote = document.getElementById('strategy-nav-note');
+        const headingTagOptionsEl = document.getElementById('heading-tag-options');
+        const previewListEl = document.getElementById('strategy-preview-list');
 
-        // Patch processEpubFile to call autoSegmentBook and then render (but we moved render to handleFile)
-        // We'll keep the flow: handleFile calls processEpubFile, then sets progress, then calls renderCurrentChapter.
-        // So we need to ensure autoSegmentBook is called inside processEpubFile.
-        // I'll add autoSegmentBook call at the end of processEpubFile.
+        let pendingStrategy = 'spine';
 
-        // Override processEpubFile to call autoSegmentBook at the end.
-        const originalProcess = processEpubFile;
-        processEpubFile = async function(file) {
-            await originalProcess(file);
-            autoSegmentBook();
-        };
+        function openChapterStrategyModal() {
+            // Nav option availability
+            if (AppState.resolvedNavEntries && AppState.resolvedNavEntries.length > 0) {
+                navRadio.disabled = false;
+                navNote.textContent = `Found ${AppState.resolvedNavEntries.length} entries in this book's table of contents.`;
+            } else {
+                navRadio.disabled = true;
+                navNote.textContent = `This book doesn't include a usable table of contents.`;
+            }
 
-        // Also we need to ensure that after processing, we set the current chapter index from saved progress.
-        // In handleFile we already do that.
+            // Heading tag buttons, built from what's actually present in this book
+            headingTagOptionsEl.innerHTML = '';
+            const counts = AppState.headingTagCounts || {};
+            const anyHeadings = ['h1', 'h2', 'h3', 'h4'].some(tag => counts[tag] > 0);
+            if (!anyHeadings) {
+                headingTagOptionsEl.innerHTML = '<small style="color: var(--color-meta);">No heading tags found in this book.</small>';
+            } else {
+                ['h1', 'h2', 'h3', 'h4'].forEach(tag => {
+                    if (counts[tag] > 0) {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'icon-btn';
+                        btn.textContent = `${tag.toUpperCase()} (${counts[tag]} found)`;
+                        btn.dataset.tag = tag;
+                        btn.addEventListener('click', () => {
+                            document.querySelectorAll('input[name="chapter-strategy"]').forEach(r => r.checked = false);
+                            headingTagOptionsEl.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+                            btn.classList.add('selected');
+                            pendingStrategy = `heading:${tag}`;
+                            updateStrategyPreview();
+                        });
+                        headingTagOptionsEl.appendChild(btn);
+                    }
+                });
+            }
 
-        // We need to define autoSegmentBook before calling it, but we already have.
+            // Reset selection to the strategy currently in effect
+            pendingStrategy = AppState.chapterStrategy;
+            document.querySelectorAll('input[name="chapter-strategy"]').forEach(r => {
+                r.checked = (r.value === pendingStrategy);
+            });
+            headingTagOptionsEl.querySelectorAll('button').forEach(b => {
+                b.classList.toggle('selected', pendingStrategy === `heading:${b.dataset.tag}`);
+            });
 
-        // Now the flow is correct.
+            updateStrategyPreview();
+            chapterStrategyOverlay.classList.add('open');
+            chapterStrategyModal.classList.add('open');
+        }
+
+        function closeChapterStrategyModal() {
+            chapterStrategyOverlay.classList.remove('open');
+            chapterStrategyModal.classList.remove('open');
+        }
+
+        document.querySelectorAll('input[name="chapter-strategy"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                pendingStrategy = e.target.value;
+                headingTagOptionsEl.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+                updateStrategyPreview();
+            });
+        });
+
+        function updateStrategyPreview() {
+            if (pendingStrategy === 'nav' && !(AppState.resolvedNavEntries && AppState.resolvedNavEntries.length > 0)) {
+                previewListEl.innerHTML = '<li style="color: var(--color-meta);">Not available for this book.</li>';
+                return;
+            }
+            let chunks;
+            try {
+                chunks = computeChunksForStrategy(pendingStrategy);
+            } catch (e) {
+                previewListEl.innerHTML = '<li style="color: var(--color-meta);">Could not preview this strategy.</li>';
+                return;
+            }
+            previewListEl.innerHTML = '';
+            if (chunks.length === 0) {
+                previewListEl.innerHTML = '<li style="color: var(--color-meta);">No chapters detected with this strategy.</li>';
+                return;
+            }
+            chunks.forEach((chunk, i) => {
+                const li = document.createElement('li');
+                li.textContent = titleForChunk(chunk, i);
+                previewListEl.appendChild(li);
+            });
+        }
+
+        document.getElementById('toc-strategy-link').addEventListener('click', openChapterStrategyModal);
+        document.getElementById('close-chapter-strategy').addEventListener('click', closeChapterStrategyModal);
+        document.getElementById('cancel-chapter-strategy').addEventListener('click', closeChapterStrategyModal);
+        chapterStrategyOverlay.addEventListener('click', closeChapterStrategyModal);
+
+        document.getElementById('apply-chapter-strategy').addEventListener('click', () => {
+            applyChapterStrategy(pendingStrategy);
+            renderCurrentChapter();
+            closeChapterStrategyModal();
+            closeAllPanels();
+        });
 
         // =========================================================================
-        // 6. Header visibility (unchanged)
+        // 7. Header visibility — driven purely by cursor position, not scrolling.
+        //    Visible while the pointer is in the header's own screen region (top
+        //    strip of the viewport); hides as soon as the pointer moves down into
+        //    the reading area below it.
         // =========================================================================
-        let lastScroll = 0;
         const header = document.getElementById('reader-header');
 
-        window.addEventListener('scroll', () => {
-            const currentScroll = window.pageYOffset;
-            if (currentScroll <= 0) {
-                header.classList.add('visible');
-            } else if (currentScroll < lastScroll) {
+        window.addEventListener('mousemove', (e) => {
+            // height is unaffected by the show/hide transform, so this works
+            // whether the header is currently visible or translated off-screen.
+            const revealZone = header.getBoundingClientRect().height + 10;
+            if (e.clientY <= revealZone) {
                 header.classList.add('visible');
             } else {
                 header.classList.remove('visible');
             }
-            lastScroll = currentScroll;
         });
 
-        window.addEventListener('mousemove', (e) => {
-            if (e.clientY < 60) header.classList.add('visible');
+        // If the pointer leaves the browser viewport entirely (e.g. up into the
+        // OS chrome), don't leave the header stuck open.
+        document.addEventListener('mouseleave', () => {
+            header.classList.remove('visible');
         });
 
         // =========================================================================
-        // 7. Init
+        // 8. Init
         // =========================================================================
         loadSettings();
         // Ensure image toggle checkbox reflects class
