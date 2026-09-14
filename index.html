@@ -5,12 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EPUB Reader</title>
 
-    <!-- Preload & load fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300..700;1,300..700&family=OpenDyslexic:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-
-    <!-- JSZip for in-browser EPUB extraction -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
@@ -85,18 +82,15 @@
             text-rendering: optimizeLegibility;
         }
 
-        /* Hide images toggle */
         .hide-images img,
         .hide-images image,
         .hide-images svg image {
             display: none !important;
         }
 
-        /* Links & Anchors */
         a { color: var(--color-link); text-decoration-thickness: 1px; text-underline-offset: 3px; }
         a:not([href]) { color: inherit; text-decoration: none; cursor: text; }
 
-        /* Image Constraints */
         img, svg, image {
             max-width: 100%;
             max-height: 70vh;
@@ -122,10 +116,7 @@
             padding: 3rem 2rem; border: 2px dashed transparent; border-radius: 1rem;
             transition: all var(--transition-theme);
         }
-        #drop-zone.dragover {
-            border-color: var(--color-link);
-            background-color: var(--color-hover);
-        }
+        #drop-zone.dragover { border-color: var(--color-link); background-color: var(--color-hover); }
         #setup-view h1 { font-size: calc(1rem * 2.441); font-weight: 700; margin-bottom: 1rem; }
 
         .upload-btn {
@@ -137,15 +128,9 @@
         }
         .upload-btn:hover { border-color: var(--color-link); background-color: var(--color-divider); }
 
-        #error-msg {
-            color: #b33;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            min-height: 1.5em;
-        }
+        #error-msg { color: #b33; margin-top: 1rem; font-size: 0.9rem; min-height: 1.5em; }
         [data-theme="dark"] #error-msg { color: #ff8a8a; }
 
-        /* Reader Layout */
         #book-content {
             max-inline-size: var(--measure); margin-inline: auto;
             padding-inline: clamp(1.5rem, 4vw, 3rem); padding-top: 6rem; padding-bottom: 6rem;
@@ -168,15 +153,8 @@
             border-left: 2px solid var(--color-divider); padding-left: 1rem;
         }
 
-        /* Justified text: only enabled together with hyphenation, since justify
-           without hyphenation produces bad rag/whitespace rivers. Relies on the
-           <html lang="en"> attribute for the browser's hyphenation dictionary. */
-        #book-content.justify-on p,
-        #book-content.justify-on blockquote {
-            text-align: justify;
-            hyphens: auto;
-            -webkit-hyphens: auto;
-            -ms-hyphens: auto;
+        #book-content.justify-on p, #book-content.justify-on blockquote {
+            text-align: justify; hyphens: auto; -webkit-hyphens: auto; -ms-hyphens: auto;
         }
 
         /* ==========================================================================
@@ -210,20 +188,14 @@
         .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
         /* ==========================================================================
-           5. Panels (TOC & Settings) + Overlay
+           5. Panels (TOC, Settings, Search) + Overlay
            ========================================================================== */
         #overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--color-overlay);
-            z-index: 150;
-            display: none;
-            transition: opacity 0.3s ease;
-            opacity: 0;
+            background: var(--color-overlay); z-index: 150;
+            display: none; transition: opacity 0.3s ease; opacity: 0;
         }
-        #overlay.open {
-            display: block;
-            opacity: 1;
-        }
+        #overlay.open { display: block; opacity: 1; }
 
         .side-panel {
             position: fixed; top: 0; height: 100vh; background: var(--color-panel);
@@ -240,7 +212,6 @@
         .panel-header h3 { margin: 0; font-size: 1.2rem; }
         .close-btn { background: none; border: none; font-size: 1.5rem; color: var(--color-text); cursor: pointer; padding: 0; }
 
-        /* TOC List */
         #toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
         #toc-list li a {
             display: block; padding: 0.5rem; color: var(--color-text); text-decoration: none;
@@ -248,7 +219,6 @@
         }
         #toc-list li a:hover { background: var(--color-hover); color: var(--color-link); }
 
-        /* Settings Form */
         .setting-group { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
         .setting-group label {
             font-size: 0.85rem; font-weight: 700; color: var(--color-meta); text-transform: uppercase; letter-spacing: 0.05em;
@@ -258,6 +228,149 @@
             border: 1px solid var(--color-divider); color: var(--color-text); border-radius: 0.25rem;
         }
         .setting-group small { font-size: 0.8rem; color: var(--color-meta); line-height: 1.3; }
+
+        /* Search Panel Styling */
+        #search-panel { right: 0; transform: translateX(100%); border-left: 1px solid var(--color-divider); }
+        #search-panel.open { transform: translateX(0); }
+
+        .search-input-wrapper { margin-bottom: 1.5rem; }
+        .search-input-wrapper input {
+            width: 100%; padding: 0.75rem; font-family: inherit; font-size: 1rem;
+            background: var(--color-bg); border: 1px solid var(--color-divider);
+            color: var(--color-text); border-radius: 0.5rem;
+            transition: border-color var(--transition-theme);
+        }
+        .search-input-wrapper input:focus { outline: none; border-color: var(--color-link); }
+
+        #search-results-list {
+            list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem;
+        }
+        .search-result-item {
+            padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--color-divider);
+            cursor: pointer; transition: all 0.2s; background: var(--color-bg);
+        }
+        .search-result-item:hover { border-color: var(--color-link); background: var(--color-hover); }
+        .search-result-chapter {
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; color: var(--color-meta); margin-bottom: 0.4rem;
+        }
+        .search-result-snippet { font-size: 0.9rem; line-height: 1.5; color: var(--color-text); }
+
+        /* Text Highlighting in reading view */
+        mark { background-color: rgba(255, 204, 0, 0.4); color: inherit; border-radius: 2px; padding: 0 0.1em; }
+        [data-theme="dark"] mark { background-color: rgba(255, 204, 0, 0.25); color: #fff; }
+
+        .search-highlight-pulse { animation: pulse-bg 2s ease-out; }
+        @keyframes pulse-bg {
+            0% { background-color: rgba(255, 204, 0, 0.5); }
+            100% { background-color: transparent; }
+        }
+        [data-theme="dark"] @keyframes pulse-bg {
+            0% { background-color: rgba(255, 204, 0, 0.35); }
+            100% { background-color: transparent; }
+        }
+
+        /* ==========================================================================
+           5b. Saved Passages: selection tooltip, palette, underline, popover, panel
+           ========================================================================== */
+        mark.saved-passage {
+            background: none; color: inherit; border-radius: 0; padding: 0;
+            text-decoration: underline; text-decoration-color: var(--color-link);
+            text-decoration-thickness: 1px; text-underline-offset: 3px;
+            text-decoration-skip-ink: none; cursor: pointer;
+        }
+        [data-theme="dark"] mark.saved-passage { text-decoration-color: var(--color-link); }
+
+        #quote-tooltip {
+            position: fixed; z-index: 300; display: none;
+            background: var(--color-panel); border: 1px solid var(--color-divider);
+            border-radius: 0.5rem; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            padding: 0.3rem; transform: translate(-50%, -100%) translateY(-8px);
+        }
+        #quote-tooltip.visible { display: block; }
+        #quote-tooltip button {
+            background: none; border: none; color: var(--color-text); cursor: pointer;
+            font-family: inherit; font-size: 0.85rem; padding: 0.4rem 0.7rem;
+            display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; border-radius: 0.3rem;
+        }
+        #quote-tooltip button:hover { background: var(--color-hover); }
+        #quote-tooltip .tooltip-hint {
+            font-size: 0.7rem; color: var(--color-meta); border: 1px solid var(--color-divider);
+            border-radius: 0.3rem; padding: 0.05rem 0.35rem;
+        }
+
+        /* Save Palette (Cmd+K) */
+        #save-palette-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--color-overlay); z-index: 350; display: none; opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        #save-palette-overlay.open { display: block; opacity: 1; }
+        #save-palette-modal {
+            position: fixed; top: 20%; left: 50%; transform: translate(-50%, 0);
+            background: var(--color-panel); border-radius: 0.75rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 360;
+            width: 90%; max-width: 560px; padding: 1.5rem; display: none;
+        }
+        #save-palette-modal.open { display: block; }
+        #save-palette-quote {
+            font-style: italic; font-size: 0.95rem; line-height: 1.5; color: var(--color-text);
+            border-left: 2px solid var(--color-divider); padding-left: 1rem; margin: 0 0 1rem 0;
+            max-height: 8rem; overflow-y: auto;
+        }
+        #save-palette-input {
+            width: 100%; padding: 0.7rem; font-family: inherit; font-size: 1rem;
+            background: var(--color-bg); border: 1px solid var(--color-divider);
+            color: var(--color-text); border-radius: 0.5rem;
+        }
+        #save-palette-input:focus { outline: none; border-color: var(--color-link); }
+        #save-palette-hint { font-size: 0.78rem; color: var(--color-meta); margin-top: 0.6rem; }
+
+        /* Passage popover (click on an underlined saved passage) */
+        #passage-popover {
+            position: fixed; z-index: 300; display: none;
+            background: var(--color-panel); border: 1px solid var(--color-divider);
+            border-radius: 0.5rem; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            padding: 0.85rem 1rem; max-width: 320px; font-size: 0.85rem;
+        }
+        #passage-popover.visible { display: block; }
+        #passage-popover .popover-note { margin: 0 0 0.5rem 0; line-height: 1.4; color: var(--color-text); }
+        #passage-popover .popover-meta { color: var(--color-meta); font-size: 0.75rem; margin-bottom: 0.6rem; }
+        #passage-popover .popover-actions { display: flex; gap: 0.5rem; }
+        #passage-popover button {
+            font-family: inherit; font-size: 0.78rem; padding: 0.3rem 0.6rem; border-radius: 0.3rem;
+            border: 1px solid var(--color-divider); background: none; color: var(--color-text); cursor: pointer;
+        }
+        #passage-popover button:hover { background: var(--color-hover); }
+        #passage-popover button.danger:hover { border-color: #b33; color: #b33; }
+
+        /* Notes (saved passages) panel */
+        #notes-panel { right: 0; transform: translateX(100%); border-left: 1px solid var(--color-divider); }
+        #notes-panel.open { transform: translateX(0); }
+        #notes-list { list-style: none; padding: 0; margin: 0 0 1.5rem 0; display: flex; flex-direction: column; gap: 0.9rem; }
+        .note-item {
+            padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--color-divider); background: var(--color-bg);
+        }
+        .note-item blockquote {
+            margin: 0 0 0.5rem 0; font-style: italic; font-size: 0.9rem; line-height: 1.45;
+            border-left: 2px solid var(--color-divider); padding-left: 0.75rem;
+        }
+        .note-item .note-comment { font-size: 0.85rem; margin-bottom: 0.5rem; line-height: 1.4; }
+        .note-item .note-meta {
+            font-size: 0.72rem; color: var(--color-meta); text-transform: uppercase;
+            letter-spacing: 0.03em; margin-bottom: 0.5rem;
+        }
+        .note-item .note-actions { display: flex; gap: 0.5rem; }
+        .note-item .note-actions button {
+            font-family: inherit; font-size: 0.75rem; padding: 0.3rem 0.6rem; border-radius: 0.3rem;
+            border: 1px solid var(--color-divider); background: none; color: var(--color-text); cursor: pointer;
+        }
+        .note-item .note-actions button:hover { background: var(--color-hover); }
+        #notes-empty { color: var(--color-meta); font-style: italic; font-size: 0.9rem; }
+        .export-actions { display: flex; flex-direction: column; gap: 0.6rem; border-top: 1px solid var(--color-divider); padding-top: 1.25rem; }
+        #notes-toast {
+            font-size: 0.78rem; color: var(--color-meta); min-height: 1.2em; margin-top: 0.4rem;
+        }
 
         /* Chapter Strategy Modal */
         #chapter-strategy-overlay {
@@ -280,22 +393,15 @@
         .modal-header h3 { margin: 0; font-size: 1.2rem; }
         .modal-subtitle { color: var(--color-meta); font-size: 0.85rem; margin: 0 0 1.5rem 0; }
 
-        .strategy-option {
-            margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--color-divider);
-        }
-        .strategy-option label {
-            display: flex; align-items: center; gap: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.95rem;
-        }
+        .strategy-option { margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--color-divider); }
+        .strategy-option label { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.95rem; }
         .strategy-option label input[type="radio"] { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
         .strategy-option small { display: block; color: var(--color-meta); margin-top: 0.35rem; margin-left: 1.75rem; line-height: 1.4; }
 
         #heading-tag-options { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; margin-left: 1.75rem; }
         #heading-tag-options button.selected { border-color: var(--color-link); background-color: var(--color-hover); }
 
-        .strategy-preview h4 {
-            font-size: 0.85rem; font-weight: 700; color: var(--color-meta); text-transform: uppercase;
-            letter-spacing: 0.05em; margin: 0 0 0.6rem 0;
-        }
+        .strategy-preview h4 { font-size: 0.85rem; font-weight: 700; color: var(--color-meta); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.6rem 0; }
         .strategy-preview ol {
             max-height: 220px; overflow-y: auto; padding-left: 1.4rem; margin: 0;
             font-size: 0.85rem; color: var(--color-text); background: var(--color-bg);
@@ -311,7 +417,6 @@
         }
         #toc-strategy-link:hover { color: var(--color-link); }
 
-        /* Footer */
         #reader-footer {
             max-inline-size: var(--measure); margin-inline: auto; padding: 2rem clamp(1.5rem, 4vw, 3rem);
             border-top: 1px solid var(--color-divider); display: flex; justify-content: space-between; align-items: center;
@@ -356,6 +461,8 @@
             </div>
 
             <div class="header-right">
+                <button id="toggle-search" class="icon-btn" aria-label="Search book">🔍 Search</button>
+                <button id="toggle-notes" class="icon-btn" aria-label="Saved passages">❝ Notes</button>
                 <button id="toggle-settings" class="icon-btn" aria-label="Open settings">Options</button>
             </div>
         </header>
@@ -370,6 +477,35 @@
             <ul id="toc-list">
                 <li style="color: var(--color-meta); font-style: italic;">Extracting navigation...</li>
             </ul>
+        </aside>
+
+        <!-- Search Panel -->
+        <aside id="search-panel" class="side-panel">
+            <div class="panel-header">
+                <h3>Search</h3>
+                <button id="close-search" class="close-btn" aria-label="Close search">×</button>
+            </div>
+            <div class="search-input-wrapper">
+                <input type="search" id="search-input" placeholder="Enter keywords..." autocomplete="off">
+                <small id="search-status" style="color: var(--color-meta); display: block; margin-top: 0.5rem;"></small>
+            </div>
+            <ul id="search-results-list"></ul>
+        </aside>
+
+        <!-- Notes / Saved Passages Panel -->
+        <aside id="notes-panel" class="side-panel">
+            <div class="panel-header">
+                <h3>Saved passages</h3>
+                <button id="close-notes" class="close-btn" aria-label="Close saved passages">×</button>
+            </div>
+            <ul id="notes-list"></ul>
+            <p id="notes-empty">Select text while reading, then click "Save quote" or press ⌘K to save your first passage.</p>
+            <div class="export-actions">
+                <button id="copy-md-btn" class="icon-btn">Copy as Markdown</button>
+                <button id="download-md-btn" class="icon-btn">Download Markdown (.md)</button>
+                <button id="download-json-btn" class="icon-btn">Download JSON (.json)</button>
+                <div id="notes-toast"></div>
+            </div>
         </aside>
 
         <!-- Settings Panel -->
@@ -471,6 +607,31 @@
             <!-- Rendered HTML goes here -->
         </main>
 
+        <!-- Selection tooltip -->
+        <div id="quote-tooltip">
+            <button id="save-quote-btn" type="button">
+                Save quote <span class="tooltip-hint">⌘K</span>
+            </button>
+        </div>
+
+        <!-- Save Palette (Cmd+K) -->
+        <div id="save-palette-overlay"></div>
+        <div id="save-palette-modal">
+            <blockquote id="save-palette-quote"></blockquote>
+            <input type="text" id="save-palette-input" placeholder="Add a note (optional)…" autocomplete="off">
+            <div id="save-palette-hint">Enter to save · Esc to cancel</div>
+        </div>
+
+        <!-- Saved passage popover -->
+        <div id="passage-popover">
+            <div class="popover-meta" id="popover-meta"></div>
+            <p class="popover-note" id="popover-note"></p>
+            <div class="popover-actions">
+                <button id="popover-remove" class="danger" type="button">Remove highlight</button>
+                <button id="popover-close" type="button">Close</button>
+            </div>
+        </div>
+
         <!-- Footer Navigation -->
         <footer id="reader-footer">
             <button id="bottom-btn-prev" class="icon-btn">← Previous</button>
@@ -493,10 +654,20 @@
             processedChapters: [], // array of { html, anchorId, title? }
             currentChapterIndex: 0,
             bookTitle: "Unknown Title",
+            bookAuthor: "Unknown author",
+            bookFilename: "",
             bookHash: "", // used for progress storage
             resolvedNavEntries: null, // [{ title, spineIndex, anchorId }] or null if unavailable
             headingTagCounts: {},     // { h1: n, h2: n, h3: n, h4: n }
-            chapterStrategy: 'spine'  // 'spine' | 'nav' | 'heading:h2' etc.
+            chapterStrategy: 'spine', // 'spine' | 'nav' | 'heading:h2' etc.
+            
+            // Search State Additions
+            currentSearchTerms: [],
+            targetElementId: null, // Used to scroll to a specific searched element
+
+            // Saved Passages (highlights + notes) State
+            savedPassages: [],       // [{ id, quoteText, prefix, suffix, chapterIndexAtSave, chapterKey, chapterTitleAtSave, note, dateSaved }]
+            pendingSelection: null   // captured selection info awaiting a save decision
         };
 
         /**
@@ -511,7 +682,6 @@
         const imageToggle = document.getElementById('toggle-images');
         const justifyToggle = document.getElementById('toggle-justify');
 
-        // Load settings from localStorage
         function loadSettings() {
             const saved = localStorage.getItem('epubReaderSettings');
             if (saved) {
@@ -527,7 +697,6 @@
                     if (settings.justifyText !== undefined) justifyToggle.checked = settings.justifyText;
                 } catch (e) { /* ignore */ }
             }
-            // Apply settings to DOM
             applyAllSettings();
         }
 
@@ -545,20 +714,17 @@
         }
 
         function applyAllSettings() {
-            // Theme already applied via attribute
             document.documentElement.style.setProperty('--font-multiplier', fontSizeSlider.value);
             document.documentElement.style.setProperty('--font-family', fontFamilySelect.value);
             document.documentElement.style.setProperty('--line-height', lineHeightSlider.value);
             document.documentElement.style.setProperty('--measure', columnWidthSlider.value + 'ch');
 
-            // Image visibility
             if (imageToggle.checked) {
                 document.body.classList.remove('hide-images');
             } else {
                 document.body.classList.add('hide-images');
             }
 
-            // Justified text (bundled with hyphenation + text-wrap: pretty via CSS)
             const bookContentEl = document.getElementById('book-content');
             if (justifyToggle.checked) {
                 bookContentEl.classList.add('justify-on');
@@ -580,114 +746,90 @@
             }
         }
 
-        // Event listeners for settings
         themeToggleBtn.addEventListener('click', () => {
             const currentTheme = html.getAttribute('data-theme');
-            if (currentTheme === 'dark') {
-                html.setAttribute('data-theme', 'light');
-            } else {
-                html.setAttribute('data-theme', 'dark');
-            }
+            if (currentTheme === 'dark') html.setAttribute('data-theme', 'light');
+            else html.setAttribute('data-theme', 'dark');
             saveSettings();
             updateThemeButtonLabel();
         });
 
-        fontSizeSlider.addEventListener('input', (e) => {
-            applyAllSettings();
-            saveSettings();
-        });
-
-        fontFamilySelect.addEventListener('change', () => {
-            applyAllSettings();
-            saveSettings();
-        });
-
-        lineHeightSlider.addEventListener('input', () => {
-            applyAllSettings();
-            saveSettings();
-        });
-
-        columnWidthSlider.addEventListener('input', () => {
-            applyAllSettings();
-            saveSettings();
-        });
-
-        imageToggle.addEventListener('change', () => {
-            applyAllSettings();
-            saveSettings();
-        });
-
-        justifyToggle.addEventListener('change', () => {
-            applyAllSettings();
-            saveSettings();
-        });
+        fontSizeSlider.addEventListener('input', () => { applyAllSettings(); saveSettings(); });
+        fontFamilySelect.addEventListener('change', () => { applyAllSettings(); saveSettings(); });
+        lineHeightSlider.addEventListener('input', () => { applyAllSettings(); saveSettings(); });
+        columnWidthSlider.addEventListener('input', () => { applyAllSettings(); saveSettings(); });
+        imageToggle.addEventListener('change', () => { applyAllSettings(); saveSettings(); });
+        justifyToggle.addEventListener('change', () => { applyAllSettings(); saveSettings(); });
 
         // Panel toggles with overlay
         const overlay = document.getElementById('overlay');
         const tocPanel = document.getElementById('toc-panel');
         const settingsPanel = document.getElementById('settings-panel');
+        const searchPanel = document.getElementById('search-panel');
+        const notesPanel = document.getElementById('notes-panel');
 
         function openPanel(panel) {
             panel.classList.add('open');
             overlay.classList.add('open');
+            if (panel === searchPanel) {
+                setTimeout(() => document.getElementById('search-input').focus(), 100);
+            }
+            if (panel === notesPanel) {
+                renderNotesList();
+            }
         }
 
         function closeAllPanels() {
             tocPanel.classList.remove('open');
             settingsPanel.classList.remove('open');
+            searchPanel.classList.remove('open');
+            notesPanel.classList.remove('open');
             overlay.classList.remove('open');
         }
 
         document.getElementById('toggle-toc').addEventListener('click', (e) => {
             e.stopPropagation();
-            if (tocPanel.classList.contains('open')) {
-                closeAllPanels();
-            } else {
-                openPanel(tocPanel);
-            }
+            if (tocPanel.classList.contains('open')) closeAllPanels();
+            else { closeAllPanels(); openPanel(tocPanel); }
         });
 
         document.getElementById('toggle-settings').addEventListener('click', (e) => {
             e.stopPropagation();
-            if (settingsPanel.classList.contains('open')) {
-                closeAllPanels();
-            } else {
-                openPanel(settingsPanel);
-            }
+            if (settingsPanel.classList.contains('open')) closeAllPanels();
+            else { closeAllPanels(); openPanel(settingsPanel); }
+        });
+
+        // Search Panel Toggle
+        document.getElementById('toggle-search').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (searchPanel.classList.contains('open')) closeAllPanels();
+            else { closeAllPanels(); openPanel(searchPanel); }
+        });
+
+        document.getElementById('toggle-notes').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (notesPanel.classList.contains('open')) closeAllPanels();
+            else { closeAllPanels(); openPanel(notesPanel); }
         });
 
         document.getElementById('close-toc').addEventListener('click', closeAllPanels);
         document.getElementById('close-settings').addEventListener('click', closeAllPanels);
+        document.getElementById('close-search').addEventListener('click', closeAllPanels);
+        document.getElementById('close-notes').addEventListener('click', closeAllPanels);
         overlay.addEventListener('click', closeAllPanels);
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            // Prevent if input/textarea focused
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
             switch (e.key) {
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    goPrev();
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    goNext();
-                    break;
-                case 't':
-                case 'T':
-                    e.preventDefault();
-                    document.getElementById('toggle-toc').click();
-                    break;
-                case 's':
-                case 'S':
-                    e.preventDefault();
-                    document.getElementById('toggle-settings').click();
-                    break;
-                case 'Escape':
-                    closeAllPanels();
-                    break;
+                case 'ArrowLeft': e.preventDefault(); goPrev(); break;
+                case 'ArrowRight': e.preventDefault(); goNext(); break;
+                case 't': case 'T': e.preventDefault(); document.getElementById('toggle-toc').click(); break;
+                case 's': case 'S': e.preventDefault(); document.getElementById('toggle-settings').click(); break;
+                case 'f': case 'F': case '/': e.preventDefault(); document.getElementById('toggle-search').click(); break;
+                case 'Escape': closeAllPanels(); break;
             }
         });
 
@@ -699,38 +841,23 @@
         const dropZone = document.getElementById('drop-zone');
         const errorMsg = document.getElementById('error-msg');
 
-        function showError(text) {
-            errorMsg.textContent = text;
-        }
-
-        function clearError() {
-            errorMsg.textContent = '';
-        }
+        function showError(text) { errorMsg.textContent = text; }
+        function clearError() { errorMsg.textContent = ''; }
 
         // Drag and Drop
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, preventDefaults, false);
         });
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
-        });
+        ['dragenter', 'dragover'].forEach(eventName => { dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false); });
+        ['dragleave', 'drop'].forEach(eventName => { dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false); });
 
         dropZone.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
             const files = dt.files;
-            if (files && files.length > 0) {
-                handleFile(files[0]);
-            }
+            if (files && files.length > 0) handleFile(files[0]);
         }, false);
 
         uploadInput.addEventListener('change', (e) => {
@@ -738,15 +865,13 @@
             if (file) handleFile(file);
         });
 
-        // Unified File Handler
         async function handleFile(file) {
             if (!file.name.toLowerCase().endsWith('.epub')) {
-                showError("Please select a valid .epub file.");
-                return;
+                showError("Please select a valid .epub file."); return;
             }
             clearError();
-
             loadingMsg.classList.remove('hidden');
+            
             try {
                 await processEpubFile(file);
                 document.getElementById('setup-view').classList.remove('active');
@@ -760,7 +885,7 @@
                         AppState.currentChapterIndex = idx;
                     }
                 }
-
+                loadSavedPassages();
                 renderCurrentChapter();
             } catch (err) {
                 console.error(err);
@@ -775,7 +900,6 @@
             const zip = AppState.zip;
             const parser = new DOMParser();
 
-            // Find OPF
             const containerXml = await zip.file("META-INF/container.xml").async("string");
             const containerDoc = parser.parseFromString(containerXml, "application/xml");
             const rootfile = containerDoc.getElementsByTagName("rootfile")[0];
@@ -784,17 +908,37 @@
             AppState.opfPath = opfPath;
             AppState.opfPrefix = prefix;
 
-            // Parse OPF
             const opfXml = await zip.file(opfPath).async("string");
             const opfDoc = parser.parseFromString(opfXml, "application/xml");
 
-            const titleNode = opfDoc.getElementsByTagName("dc:title")[0];
-            if (titleNode) {
-                AppState.bookTitle = titleNode.textContent;
+            function getDCElements(localName) {
+                const DC_NS = "http://purl.org/dc/elements/1.1/";
+                let els = Array.from(opfDoc.getElementsByTagNameNS(DC_NS, localName));
+                if (els.length === 0) {
+                    // Fallback for docs where the namespace isn't declared as expected
+                    els = Array.from(opfDoc.getElementsByTagName(`dc:${localName}`));
+                }
+                return els;
+            }
+
+            const titleEls = getDCElements("title");
+            if (titleEls[0] && titleEls[0].textContent.trim()) {
+                AppState.bookTitle = titleEls[0].textContent.trim();
                 document.getElementById('book-title').textContent = AppState.bookTitle;
             }
 
-            // Generate a simple hash from the title (or use file name) for progress storage
+            const OPF_NS = "http://www.idpf.org/2007/opf";
+            const creatorEls = getDCElements("creator");
+            const authors = creatorEls
+                .filter(el => {
+                    const role = el.getAttributeNS(OPF_NS, "role") || el.getAttribute("opf:role");
+                    return !role || role === "aut"; // keep untagged creators or explicit authors; drop editors/translators etc.
+                })
+                .map(el => el.textContent.trim())
+                .filter(Boolean);
+            AppState.bookAuthor = authors.length ? authors.join(", ") : "Unknown author";
+            AppState.bookFilename = file.name;
+
             AppState.bookHash = btoa(encodeURIComponent(AppState.bookTitle + file.name)).slice(0, 20);
 
             const manifestItems = Array.from(opfDoc.getElementsByTagName("item"));
@@ -805,7 +949,6 @@
                 manifest[item.getAttribute("id")] = item.getAttribute("href");
             });
 
-            // Extract Spine HTML
             AppState.rawSpineItems = [];
             AppState.spineHrefs = [];
             AppState.spineFullPaths = [];
@@ -816,13 +959,10 @@
 
                 const href = decodeURIComponent(manifest[id]);
                 const fullPath = prefix + href;
-
                 const fileObj = zip.file(fullPath);
                 if (!fileObj) continue;
 
                 let htmlStr = await fileObj.async("string");
-
-                // Cleanup and Asset Resolution
                 htmlStr = await resolveImages(htmlStr, fullPath);
                 htmlStr = stripPublisherStyles(htmlStr);
 
@@ -831,9 +971,6 @@
                 AppState.spineFullPaths.push(fullPath);
             }
 
-            // Attempt to parse the book's own table of contents (EPUB3 nav or EPUB2 NCX).
-            // This is used only as an optional alternate chapter-splitting strategy;
-            // the default segmentation below doesn't depend on it.
             try {
                 const navEntries = await parseBookNav();
                 AppState.resolvedNavEntries = navEntries ? resolveNavEntriesToSpine(navEntries) : null;
@@ -843,8 +980,6 @@
             }
 
             AppState.headingTagCounts = scanHeadingTags();
-
-            // Default segmentation
             applyChapterStrategy('spine');
         }
 
@@ -898,14 +1033,6 @@
         // =========================================================================
         // 4. Smart Book Segmentation & Dynamic TOC
         // =========================================================================
-        // A "chunk" is { html, anchorId, title? }:
-        //  - html: the rendered content for this chapter
-        //  - anchorId: optional id/name to scroll to within that content once rendered
-        //              (used by the nav-based strategy, where several TOC entries can
-        //              point into different anchors of the same underlying file)
-        //  - title: optional pre-supplied title (nav strategy); otherwise derived
-
-        // --- Strategy: spine order (default) ---
         function buildSpineChunks() {
             const raw = AppState.rawSpineItems;
             let chunks = [];
@@ -918,7 +1045,6 @@
             return chunks;
         }
 
-        // --- Strategy: the book's own table of contents (nav.xhtml / NCX) ---
         async function parseBookNav() {
             const zip = AppState.zip;
             if (!zip) return null;
@@ -927,7 +1053,6 @@
             const opfDoc = parser.parseFromString(opfXml, "application/xml");
             const items = Array.from(opfDoc.getElementsByTagName("item"));
 
-            // EPUB3: manifest item with properties="nav"
             const navItem = items.find(it => (it.getAttribute("properties") || "").includes("nav"));
             if (navItem) {
                 const navHref = decodeURIComponent(navItem.getAttribute("href"));
@@ -942,18 +1067,15 @@
                         const navDir = navPath.substring(0, navPath.lastIndexOf('/'));
                         const navPrefix = navDir ? navDir + '/' : '';
                         const links = Array.from(tocNav.querySelectorAll('a[href]'));
-                        const entries = links
-                            .map(a => ({
-                                title: a.textContent.trim().replace(/\s+/g, ' '),
-                                href: resolveRelativePath(navPrefix, decodeURIComponent(a.getAttribute('href')))
-                            }))
-                            .filter(e => e.title.length > 0);
+                        const entries = links.map(a => ({
+                            title: a.textContent.trim().replace(/\s+/g, ' '),
+                            href: resolveRelativePath(navPrefix, decodeURIComponent(a.getAttribute('href')))
+                        })).filter(e => e.title.length > 0);
                         if (entries.length > 0) return entries;
                     }
                 }
             }
 
-            // EPUB2 fallback: NCX file (media-type application/x-dtbncx+xml)
             const ncxItem = items.find(it => (it.getAttribute("media-type") || "") === "application/x-dtbncx+xml");
             if (ncxItem) {
                 const ncxHref = decodeURIComponent(ncxItem.getAttribute("href"));
@@ -979,12 +1101,9 @@
                     if (entries.length > 0) return entries;
                 }
             }
-
             return null;
         }
 
-        // Map each nav/NCX entry's (path#fragment) href onto a spine index + anchor id,
-        // so clicking a TOC entry can land on the exact point inside a spine file.
         function resolveNavEntriesToSpine(navEntries) {
             return navEntries.map(entry => {
                 const [pathPart, fragment] = entry.href.split('#');
@@ -1002,9 +1121,6 @@
             }));
         }
 
-        // --- Strategy: split spine files by a chosen heading tag ---
-        // Assumes headings are direct children of <body>, which holds for the large
-        // majority of real-world EPUB spine files (flat chapter markup).
         function buildHeadingChunks(tag) {
             let chunks = [];
             AppState.rawSpineItems.forEach(html => {
@@ -1023,30 +1139,20 @@
                 let current = [];
                 topLevel.forEach(el => {
                     if (el.tagName.toLowerCase() === tag) {
-                        if (current.length > 0) {
-                            chunks.push({ html: current.map(n => n.outerHTML).join(''), anchorId: null });
-                        }
+                        if (current.length > 0) chunks.push({ html: current.map(n => n.outerHTML).join(''), anchorId: null });
                         current = [el];
-                    } else {
-                        current.push(el);
-                    }
+                    } else current.push(el);
                 });
-                if (current.length > 0) {
-                    chunks.push({ html: current.map(n => n.outerHTML).join(''), anchorId: null });
-                }
+                if (current.length > 0) chunks.push({ html: current.map(n => n.outerHTML).join(''), anchorId: null });
             });
             return chunks;
         }
 
-        // Scan the whole book for how often each heading tag actually appears,
-        // so the strategy modal can only offer tags that are meaningfully present.
         function scanHeadingTags() {
             const counts = { h1: 0, h2: 0, h3: 0, h4: 0 };
             AppState.rawSpineItems.forEach(html => {
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                ['h1', 'h2', 'h3', 'h4'].forEach(tag => {
-                    counts[tag] += doc.body.querySelectorAll(tag).length;
-                });
+                ['h1', 'h2', 'h3', 'h4'].forEach(tag => counts[tag] += doc.body.querySelectorAll(tag).length);
             });
             return counts;
         }
@@ -1061,7 +1167,7 @@
         }
 
         function titleForChunk(chunk, index) {
-            if (chunk.title) return chunk.title; // nav strategy supplies its own titles
+            if (chunk.title) return chunk.title;
             const doc = new DOMParser().parseFromString(chunk.html, 'text/html');
             let titleText = '';
             const heading = doc.querySelector('h1, h2, h3, h4');
@@ -1072,9 +1178,7 @@
                 if (textContent.length > 0) {
                     const words = textContent.split(' ');
                     titleText = words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
-                } else {
-                    titleText = `Section ${index + 1}`;
-                }
+                } else titleText = `Section ${index + 1}`;
             }
             titleText = titleText.replace(/\s+/g, ' ');
             if (titleText.length > 55) titleText = titleText.substring(0, 55) + '...';
@@ -1087,38 +1191,181 @@
             AppState.processedChapters = chunks;
             generateDynamicTOC(chunks);
             AppState.currentChapterIndex = 0;
-        }
-
-        function autoSegmentBook() {
-            applyChapterStrategy('spine');
+            // Clear current search if chapter boundaries radically shift
+            AppState.currentSearchTerms = [];
         }
 
         function generateDynamicTOC(chunks) {
             const tocListEl = document.getElementById('toc-list');
             tocListEl.innerHTML = '';
-
             chunks.forEach((chunk, index) => {
                 const titleText = titleForChunk(chunk, index);
-
                 const li = document.createElement('li');
                 const a = document.createElement('a');
-                a.href = "#";
-                a.textContent = titleText;
-                a.onclick = (e) => {
-                    e.preventDefault();
-                    goToChapter(index);
-                };
+                a.href = "#"; a.textContent = titleText;
+                a.onclick = (e) => { e.preventDefault(); goToChapter(index); };
                 li.appendChild(a);
                 tocListEl.appendChild(li);
             });
-
-            if (chunks.length === 0) {
-                tocListEl.innerHTML = '<li style="padding:1rem; color:var(--color-meta);">No content found to index.</li>';
-            }
+            if (chunks.length === 0) tocListEl.innerHTML = '<li style="padding:1rem; color:var(--color-meta);">No content found to index.</li>';
         }
 
         // =========================================================================
-        // 5. Navigation & Rendering
+        // 5. Light Boolean Search Engine & DOM Highlighting
+        // =========================================================================
+        
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func(...args), wait);
+            };
+        }
+
+        const searchInput = document.getElementById('search-input');
+        const searchStatus = document.getElementById('search-status');
+        const searchResultsList = document.getElementById('search-results-list');
+
+        searchInput.addEventListener('input', debounce((e) => {
+            const query = e.target.value;
+            executeSearch(query);
+        }, 400));
+
+        function executeSearch(query) {
+            searchResultsList.innerHTML = '';
+            const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+            
+            // If empty, clear out the search state and re-render to wipe highlights
+            if (terms.length === 0) {
+                searchStatus.textContent = '';
+                AppState.currentSearchTerms = [];
+                renderCurrentChapter(); 
+                return;
+            }
+
+            AppState.currentSearchTerms = terms;
+            searchStatus.textContent = 'Searching...';
+
+            // Yield thread for UI update
+            setTimeout(() => {
+                let matchCount = 0;
+                const results = [];
+
+                AppState.processedChapters.forEach((chunk, chapterIndex) => {
+                    const doc = new DOMParser().parseFromString(chunk.html, 'text/html');
+                    // Find blocks containing potential text matches
+                    const blocks = doc.body.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote, dt, dd');
+                    let chunkModified = false;
+
+                    blocks.forEach((block, blockIndex) => {
+                        const text = block.textContent;
+                        if (!text) return;
+                        
+                        const textLower = text.toLowerCase();
+                        // "Simple boolean light" - ALL terms must be present in this block
+                        const isMatch = terms.every(t => textLower.includes(t));
+
+                        if (isMatch) {
+                            matchCount++;
+                            // Ensure the block has an ID so we can navigate straight to it
+                            if (!block.id) {
+                                block.id = `search-match-${chapterIndex}-${blockIndex}`;
+                                chunkModified = true;
+                            }
+
+                            // Build a clean snippet centered around the first matched term
+                            const firstMatchIndex = textLower.indexOf(terms[0]);
+                            let start = Math.max(0, firstMatchIndex - 40);
+                            let end = Math.min(text.length, firstMatchIndex + 80);
+                            let snippet = text.substring(start, end);
+                            if (start > 0) snippet = '...' + snippet;
+                            if (end < text.length) snippet += '...';
+
+                            // Highlight the snippet safely using regex
+                            terms.forEach(t => {
+                                const r = new RegExp(`(${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                                snippet = snippet.replace(r, '<mark>$1</mark>');
+                            });
+
+                            results.push({
+                                chapterIndex,
+                                chapterTitle: titleForChunk(chunk, chapterIndex),
+                                snippet,
+                                elementId: block.id
+                            });
+                        }
+                    });
+
+                    // Only update chunk HTML if we added structural IDs
+                    if (chunkModified) {
+                        chunk.html = doc.body.innerHTML;
+                    }
+                });
+
+                searchStatus.textContent = `${matchCount} match${matchCount !== 1 ? 'es' : ''} found`;
+
+                // Render Results
+                results.forEach(res => {
+                    const li = document.createElement('li');
+                    li.className = 'search-result-item';
+                    li.innerHTML = `
+                        <div class="search-result-chapter">${res.chapterTitle}</div>
+                        <div class="search-result-snippet">${res.snippet}</div>
+                    `;
+                    li.addEventListener('click', () => {
+                        AppState.currentChapterIndex = res.chapterIndex;
+                        AppState.targetElementId = res.elementId;
+                        renderCurrentChapter();
+                        if (window.innerWidth < 1024) closeAllPanels();
+                    });
+                    searchResultsList.appendChild(li);
+                });
+
+            }, 20);
+        }
+
+        // Uses a TreeWalker to inject <mark> tags dynamically without destroying child DOM nodes
+        function highlightTextInContainer(container, terms) {
+            if (!terms || terms.length === 0) return;
+
+            const escapedTerms = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            const regex = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
+
+            const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+            const nodesToReplace = [];
+
+            let node;
+            while ((node = walker.nextNode())) {
+                if (node.parentNode && ['SCRIPT', 'STYLE', 'MARK'].includes(node.parentNode.nodeName)) continue;
+                if (node.nodeValue.trim() === '') continue;
+                if (regex.test(node.nodeValue)) nodesToReplace.push(node);
+            }
+
+            nodesToReplace.forEach(node => {
+                const fragment = document.createDocumentFragment();
+                let lastIndex = 0;
+                let text = node.nodeValue;
+                regex.lastIndex = 0;
+                let match;
+
+                while ((match = regex.exec(text)) !== null) {
+                    if (match.index > lastIndex) {
+                        fragment.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
+                    }
+                    const mark = document.createElement('mark');
+                    mark.textContent = match[0];
+                    fragment.appendChild(mark);
+                    lastIndex = regex.lastIndex;
+                }
+                if (lastIndex < text.length) {
+                    fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+                }
+                node.parentNode.replaceChild(fragment, node);
+            });
+        }
+
+        // =========================================================================
+        // 6. Navigation & Rendering
         // =========================================================================
         function renderCurrentChapter() {
             const contentDiv = document.getElementById('book-content');
@@ -1140,50 +1387,59 @@
             document.getElementById('bottom-btn-next').disabled = isLast;
             document.getElementById('top-btn-next').disabled = isLast;
 
-            // Save progress
-            if (AppState.bookHash) {
-                localStorage.setItem('epubProgress_' + AppState.bookHash, String(idx));
+            if (AppState.bookHash) localStorage.setItem('epubProgress_' + AppState.bookHash, String(idx));
+
+            // Dynamic Search Highlights Application
+            if (AppState.currentSearchTerms && AppState.currentSearchTerms.length > 0) {
+                highlightTextInContainer(contentDiv, AppState.currentSearchTerms);
             }
 
-            if (chunk.anchorId) {
-                // Nav-derived chapter: scroll to the specific point inside this
-                // chunk rather than just the top of the file.
-                requestAnimationFrame(() => {
-                    let target = null;
+            // Saved Passage Underlines
+            applySavedHighlights(contentDiv, idx);
+
+            requestAnimationFrame(() => {
+                let target = null;
+                
+                // Prioritize finding an explicit Search Target block over a TOC Anchor
+                if (AppState.targetElementId) {
+                    target = document.getElementById(AppState.targetElementId);
+                    AppState.targetElementId = null; // Clear it so subsequent scrolls behave normally
+                } else if (chunk.anchorId) {
                     try {
                         target = contentDiv.querySelector(`#${CSS.escape(chunk.anchorId)}`) ||
                                  contentDiv.querySelector(`[name="${CSS.escape(chunk.anchorId)}"]`);
-                    } catch (e) { /* invalid selector, ignore */ }
-                    if (target) {
-                        target.scrollIntoView({ behavior: 'auto', block: 'start' });
-                    } else {
-                        window.scrollTo({ top: 0, behavior: 'auto' });
+                    } catch (e) { /* invalid selector */ }
+                }
+
+                if (target) {
+                    target.scrollIntoView({ behavior: 'auto', block: 'center' });
+                    // Draw the eye to the specific target if we searched for it
+                    if (target.id && target.id.startsWith('search-match')) {
+                        target.classList.add('search-highlight-pulse');
+                        setTimeout(() => target.classList.remove('search-highlight-pulse'), 2000);
                     }
-                });
-            } else {
-                window.scrollTo({ top: 0, behavior: 'auto' });
-            }
+                } else {
+                    window.scrollTo({ top: 0, behavior: 'auto' });
+                }
+            });
         }
 
         function goNext() {
             if (AppState.currentChapterIndex < AppState.processedChapters.length - 1) {
-                AppState.currentChapterIndex++;
-                renderCurrentChapter();
+                AppState.currentChapterIndex++; renderCurrentChapter();
             }
         }
 
         function goPrev() {
             if (AppState.currentChapterIndex > 0) {
-                AppState.currentChapterIndex--;
-                renderCurrentChapter();
+                AppState.currentChapterIndex--; renderCurrentChapter();
             }
         }
 
         function goToChapter(index) {
             if (index >= 0 && index < AppState.processedChapters.length) {
                 AppState.currentChapterIndex = index;
-                renderCurrentChapter();
-                closeAllPanels();
+                renderCurrentChapter(); closeAllPanels();
             }
         }
 
@@ -1193,7 +1449,7 @@
         document.getElementById('top-btn-next').addEventListener('click', goNext);
 
         // =========================================================================
-        // 6. Chapter Strategy Modal
+        // 7. Chapter Strategy Modal
         // =========================================================================
         const chapterStrategyOverlay = document.getElementById('chapter-strategy-overlay');
         const chapterStrategyModal = document.getElementById('chapter-strategy-modal');
@@ -1205,7 +1461,6 @@
         let pendingStrategy = 'spine';
 
         function openChapterStrategyModal() {
-            // Nav option availability
             if (AppState.resolvedNavEntries && AppState.resolvedNavEntries.length > 0) {
                 navRadio.disabled = false;
                 navNote.textContent = `Found ${AppState.resolvedNavEntries.length} entries in this book's table of contents.`;
@@ -1214,7 +1469,6 @@
                 navNote.textContent = `This book doesn't include a usable table of contents.`;
             }
 
-            // Heading tag buttons, built from what's actually present in this book
             headingTagOptionsEl.innerHTML = '';
             const counts = AppState.headingTagCounts || {};
             const anyHeadings = ['h1', 'h2', 'h3', 'h4'].some(tag => counts[tag] > 0);
@@ -1224,8 +1478,7 @@
                 ['h1', 'h2', 'h3', 'h4'].forEach(tag => {
                     if (counts[tag] > 0) {
                         const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = 'icon-btn';
+                        btn.type = 'button'; btn.className = 'icon-btn';
                         btn.textContent = `${tag.toUpperCase()} (${counts[tag]} found)`;
                         btn.dataset.tag = tag;
                         btn.addEventListener('click', () => {
@@ -1240,11 +1493,8 @@
                 });
             }
 
-            // Reset selection to the strategy currently in effect
             pendingStrategy = AppState.chapterStrategy;
-            document.querySelectorAll('input[name="chapter-strategy"]').forEach(r => {
-                r.checked = (r.value === pendingStrategy);
-            });
+            document.querySelectorAll('input[name="chapter-strategy"]').forEach(r => { r.checked = (r.value === pendingStrategy); });
             headingTagOptionsEl.querySelectorAll('button').forEach(b => {
                 b.classList.toggle('selected', pendingStrategy === `heading:${b.dataset.tag}`);
             });
@@ -1269,20 +1519,15 @@
 
         function updateStrategyPreview() {
             if (pendingStrategy === 'nav' && !(AppState.resolvedNavEntries && AppState.resolvedNavEntries.length > 0)) {
-                previewListEl.innerHTML = '<li style="color: var(--color-meta);">Not available for this book.</li>';
-                return;
+                previewListEl.innerHTML = '<li style="color: var(--color-meta);">Not available for this book.</li>'; return;
             }
             let chunks;
-            try {
-                chunks = computeChunksForStrategy(pendingStrategy);
-            } catch (e) {
-                previewListEl.innerHTML = '<li style="color: var(--color-meta);">Could not preview this strategy.</li>';
-                return;
-            }
+            try { chunks = computeChunksForStrategy(pendingStrategy); } 
+            catch (e) { previewListEl.innerHTML = '<li style="color: var(--color-meta);">Could not preview this strategy.</li>'; return; }
+            
             previewListEl.innerHTML = '';
             if (chunks.length === 0) {
-                previewListEl.innerHTML = '<li style="color: var(--color-meta);">No chapters detected with this strategy.</li>';
-                return;
+                previewListEl.innerHTML = '<li style="color: var(--color-meta);">No chapters detected with this strategy.</li>'; return;
             }
             chunks.forEach((chunk, i) => {
                 const li = document.createElement('li');
@@ -1299,40 +1544,482 @@
         document.getElementById('apply-chapter-strategy').addEventListener('click', () => {
             applyChapterStrategy(pendingStrategy);
             renderCurrentChapter();
-            closeChapterStrategyModal();
-            closeAllPanels();
+            closeChapterStrategyModal(); closeAllPanels();
         });
 
         // =========================================================================
-        // 7. Header visibility — driven purely by cursor position, not scrolling.
-        //    Visible while the pointer is in the header's own screen region (top
-        //    strip of the viewport); hides as soon as the pointer moves down into
-        //    the reading area below it.
+        // 8. Dynamic Header Visibility
         // =========================================================================
         const header = document.getElementById('reader-header');
 
         window.addEventListener('mousemove', (e) => {
-            // height is unaffected by the show/hide transform, so this works
-            // whether the header is currently visible or translated off-screen.
             const revealZone = header.getBoundingClientRect().height + 10;
-            if (e.clientY <= revealZone) {
-                header.classList.add('visible');
-            } else {
-                header.classList.remove('visible');
-            }
+            if (e.clientY <= revealZone) header.classList.add('visible');
+            else header.classList.remove('visible');
         });
 
-        // If the pointer leaves the browser viewport entirely (e.g. up into the
-        // OS chrome), don't leave the header stuck open.
         document.addEventListener('mouseleave', () => {
             header.classList.remove('visible');
         });
 
         // =========================================================================
-        // 8. Init
+        // 9. Saved Passages: capture, persist, underline, popover, export
         // =========================================================================
+
+        function uid() {
+            return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        }
+
+        // Cheap, stable string hash used to identify a chapter's content regardless
+        // of its index (so saved passages survive a chapter re-split where possible).
+        function hashText(str) {
+            let h = 0;
+            for (let i = 0; i < str.length; i++) {
+                h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+            }
+            return h.toString(36);
+        }
+
+        function chunkPlainText(chunk) {
+            const doc = new DOMParser().parseFromString(chunk.html, 'text/html');
+            return doc.body.textContent.replace(/\s+/g, ' ').trim();
+        }
+
+        function chapterKeyForChunk(chunk) {
+            const text = chunkPlainText(chunk);
+            return hashText(text.slice(0, 400) + '|' + text.length);
+        }
+
+        // --- Persistence -------------------------------------------------------
+        function passagesStorageKey() { return 'epubHighlights_' + AppState.bookHash; }
+        function metaStorageKey() { return 'epubHighlightsMeta_' + AppState.bookHash; }
+
+        function loadSavedPassages() {
+            AppState.savedPassages = [];
+            if (!AppState.bookHash) return;
+            try {
+                const raw = localStorage.getItem(passagesStorageKey());
+                if (raw) AppState.savedPassages = JSON.parse(raw);
+            } catch (e) { AppState.savedPassages = []; }
+            try {
+                localStorage.setItem(metaStorageKey(), JSON.stringify({
+                    title: AppState.bookTitle, author: AppState.bookAuthor, filename: AppState.bookFilename
+                }));
+            } catch (e) { /* ignore quota errors */ }
+        }
+
+        function persistSavedPassages() {
+            if (!AppState.bookHash) return;
+            try {
+                localStorage.setItem(passagesStorageKey(), JSON.stringify(AppState.savedPassages));
+            } catch (e) { console.error('Could not save passage (storage full?)', e); }
+        }
+
+        // --- Selection capture & floating tooltip -------------------------------
+        const quoteTooltip = document.getElementById('quote-tooltip');
+
+        function getActiveSelectionInfo() {
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
+            const range = sel.getRangeAt(0);
+            const container = document.getElementById('book-content');
+            if (!container.contains(range.commonAncestorContainer)) return null;
+
+            const quoteText = range.toString().replace(/\s+/g, ' ').trim();
+            if (quoteText.length === 0) return null;
+
+            // Capture short context around the selection for disambiguation later
+            const fullText = container.textContent.replace(/\s+/g, ' ');
+            const idx = fullText.indexOf(quoteText);
+            let prefix = '', suffix = '';
+            if (idx >= 0) {
+                prefix = fullText.slice(Math.max(0, idx - 30), idx);
+                suffix = fullText.slice(idx + quoteText.length, idx + quoteText.length + 30);
+            }
+
+            return {
+                quoteText, prefix, suffix,
+                rect: range.getBoundingClientRect()
+            };
+        }
+
+        function showQuoteTooltip(info) {
+            const rect = info.rect;
+            quoteTooltip.style.left = (rect.left + rect.width / 2) + 'px';
+            quoteTooltip.style.top = rect.top + 'px';
+            quoteTooltip.classList.add('visible');
+        }
+
+        function hideQuoteTooltip() {
+            quoteTooltip.classList.remove('visible');
+        }
+
+        document.getElementById('book-content').addEventListener('mouseup', () => {
+            setTimeout(() => {
+                const info = getActiveSelectionInfo();
+                if (info) { AppState.pendingSelection = info; showQuoteTooltip(info); }
+                else { hideQuoteTooltip(); }
+            }, 0);
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if (!quoteTooltip.contains(e.target)) hideQuoteTooltip();
+        });
+
+        document.getElementById('save-quote-btn').addEventListener('click', () => {
+            if (AppState.pendingSelection) openSavePalette(AppState.pendingSelection);
+            hideQuoteTooltip();
+        });
+
+        // --- Save Palette (⌘K) --------------------------------------------------
+        const savePaletteOverlay = document.getElementById('save-palette-overlay');
+        const savePaletteModal = document.getElementById('save-palette-modal');
+        const savePaletteQuote = document.getElementById('save-palette-quote');
+        const savePaletteInput = document.getElementById('save-palette-input');
+
+        function openSavePalette(selectionInfo) {
+            AppState.pendingSelection = selectionInfo;
+            savePaletteQuote.textContent = selectionInfo.quoteText;
+            savePaletteInput.value = '';
+            savePaletteOverlay.classList.add('open');
+            savePaletteModal.classList.add('open');
+            setTimeout(() => savePaletteInput.focus(), 50);
+        }
+
+        function closeSavePalette() {
+            savePaletteOverlay.classList.remove('open');
+            savePaletteModal.classList.remove('open');
+        }
+
+        function commitSavedPassage() {
+            const info = AppState.pendingSelection;
+            if (!info) { closeSavePalette(); return; }
+
+            const idx = AppState.currentChapterIndex;
+            const chunk = AppState.processedChapters[idx];
+            const passage = {
+                id: uid(),
+                quoteText: info.quoteText,
+                prefix: info.prefix,
+                suffix: info.suffix,
+                chapterIndexAtSave: idx,
+                chapterKey: chunk ? chapterKeyForChunk(chunk) : '',
+                chapterTitleAtSave: chunk ? titleForChunk(chunk, idx) : '',
+                note: savePaletteInput.value.trim(),
+                dateSaved: new Date().toISOString()
+            };
+            AppState.savedPassages.push(passage);
+            persistSavedPassages();
+            AppState.pendingSelection = null;
+            closeSavePalette();
+            window.getSelection().removeAllRanges();
+
+            // Apply the new underline directly to the already-rendered content
+            // instead of a full re-render, so scroll position is left untouched.
+            const contentDiv = document.getElementById('book-content');
+            const segments = findQuoteSegments(contentDiv, passage.quoteText, passage.prefix, passage.suffix);
+            if (segments.length > 0) wrapSegmentsInMark(segments, passage.id);
+
+            if (notesPanel.classList.contains('open')) renderNotesList();
+        }
+
+        savePaletteOverlay.addEventListener('click', closeSavePalette);
+        savePaletteInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commitSavedPassage(); }
+            else if (e.key === 'Escape') { e.preventDefault(); closeSavePalette(); }
+        });
+
+        // Global ⌘K / Ctrl+K listener — only acts when there's a live text selection
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if ((e.metaKey || e.ctrlKey) && key === 'k') {
+                if (savePaletteModal.classList.contains('open')) return;
+                const info = getActiveSelectionInfo() || AppState.pendingSelection;
+                if (info) {
+                    e.preventDefault();
+                    hideQuoteTooltip();
+                    openSavePalette(info);
+                }
+            }
+        });
+
+        // --- Finding a quote's text nodes in the rendered DOM -------------------
+        // Flattens the container's text nodes, locates the quote (optionally
+        // disambiguated with prefix/suffix context when it appears more than once),
+        // and returns the DOM segments it spans so callers can wrap them in <mark>.
+        function findQuoteSegments(container, quoteText, prefix, suffix) {
+            if (!quoteText) return [];
+            const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+            const nodes = [];
+            let fullText = '';
+            let node;
+            while ((node = walker.nextNode())) {
+                if (node.parentNode && ['SCRIPT', 'STYLE'].includes(node.parentNode.nodeName)) continue;
+                nodes.push({ node, start: fullText.length, text: node.nodeValue });
+                fullText += node.nodeValue;
+            }
+
+            const normalizedQuote = quoteText.replace(/\s+/g, ' ');
+            // Build a normalized-whitespace version of fullText but keep an index map
+            // back to real offsets, since HTML source whitespace can collapse/vary.
+            const collapsed = [];
+            const indexMap = [];
+            let prevWasSpace = false;
+            for (let i = 0; i < fullText.length; i++) {
+                const ch = fullText[i];
+                const isSpace = /\s/.test(ch);
+                if (isSpace) {
+                    if (prevWasSpace) continue;
+                    collapsed.push(' ');
+                    indexMap.push(i);
+                    prevWasSpace = true;
+                } else {
+                    collapsed.push(ch);
+                    indexMap.push(i);
+                    prevWasSpace = false;
+                }
+            }
+            const collapsedText = collapsed.join('');
+
+            // Find all occurrences; if the quote appears more than once in this
+            // chapter, prefer the one whose neighboring text matches the context
+            // captured at save-time. Otherwise fall back to the first occurrence.
+            const occurrences = [];
+            let searchFrom = 0;
+            while (true) {
+                const found = collapsedText.indexOf(normalizedQuote, searchFrom);
+                if (found === -1) break;
+                occurrences.push(found);
+                searchFrom = found + Math.max(1, normalizedQuote.length);
+            }
+            if (occurrences.length === 0) return [];
+
+            let matchStart = occurrences[0];
+            if (occurrences.length > 1 && (prefix || suffix)) {
+                const trimmedPrefix = prefix.trim();
+                const trimmedSuffix = suffix.trim();
+                const scored = occurrences.map(found => {
+                    const before = collapsedText.slice(Math.max(0, found - 40), found);
+                    const after = collapsedText.slice(found + normalizedQuote.length, found + normalizedQuote.length + 40);
+                    let score = 0;
+                    if (trimmedPrefix && before.includes(trimmedPrefix)) score++;
+                    if (trimmedSuffix && after.includes(trimmedSuffix)) score++;
+                    return { found, score };
+                });
+                scored.sort((a, b) => b.score - a.score);
+                matchStart = scored[0].found;
+            }
+
+            const realStart = indexMap[matchStart];
+            const lastCollapsedIdx = matchStart + normalizedQuote.length - 1;
+            const realEnd = (lastCollapsedIdx < indexMap.length ? indexMap[lastCollapsedIdx] : fullText.length - 1) + 1;
+
+            // Map [realStart, realEnd) back onto the contributing text nodes
+            const segments = [];
+            for (const entry of nodes) {
+                const nodeEnd = entry.start + entry.text.length;
+                if (nodeEnd <= realStart || entry.start >= realEnd) continue;
+                const segStart = Math.max(0, realStart - entry.start);
+                const segEnd = Math.min(entry.text.length, realEnd - entry.start);
+                segments.push({ node: entry.node, start: segStart, end: segEnd });
+            }
+            return segments;
+        }
+
+        function wrapSegmentsInMark(segments, passageId) {
+            // Process in reverse so earlier splits don't invalidate later node references
+            segments.slice().reverse().forEach(({ node, start, end }) => {
+                if (!node.parentNode) return;
+                const text = node.nodeValue;
+                const before = text.slice(0, start);
+                const matchStr = text.slice(start, end);
+                const after = text.slice(end);
+                if (!matchStr) return;
+
+                const fragment = document.createDocumentFragment();
+                if (before) fragment.appendChild(document.createTextNode(before));
+                const mark = document.createElement('mark');
+                mark.className = 'saved-passage';
+                mark.dataset.passageId = passageId;
+                mark.textContent = matchStr;
+                fragment.appendChild(mark);
+                if (after) fragment.appendChild(document.createTextNode(after));
+                node.parentNode.replaceChild(fragment, node);
+            });
+        }
+
+        function applySavedHighlights(container, chapterIndex) {
+            if (!AppState.savedPassages || AppState.savedPassages.length === 0) return;
+            const chunk = AppState.processedChapters[chapterIndex];
+            if (!chunk) return;
+            const currentKey = chapterKeyForChunk(chunk);
+
+            const candidates = AppState.savedPassages.filter(p =>
+                p.chapterKey === currentKey || p.chapterIndexAtSave === chapterIndex
+            );
+
+            candidates.forEach(passage => {
+                const segments = findQuoteSegments(container, passage.quoteText, passage.prefix, passage.suffix);
+                if (segments.length > 0) wrapSegmentsInMark(segments, passage.id);
+            });
+        }
+
+        // --- Popover on click of a saved passage --------------------------------
+        const passagePopover = document.getElementById('passage-popover');
+        const popoverMeta = document.getElementById('popover-meta');
+        const popoverNote = document.getElementById('popover-note');
+        let popoverPassageId = null;
+
+        document.getElementById('book-content').addEventListener('click', (e) => {
+            const mark = e.target.closest('mark.saved-passage');
+            if (!mark) return;
+            const passage = AppState.savedPassages.find(p => p.id === mark.dataset.passageId);
+            if (!passage) return;
+            popoverPassageId = passage.id;
+            const dateStr = new Date(passage.dateSaved).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            popoverMeta.textContent = `Saved ${dateStr}`;
+            popoverNote.textContent = passage.note ? passage.note : '(no note added)';
+            const rect = mark.getBoundingClientRect();
+            passagePopover.style.left = Math.min(rect.left, window.innerWidth - 340) + 'px';
+            passagePopover.style.top = (rect.bottom + 8) + 'px';
+            passagePopover.classList.add('visible');
+        });
+
+        document.getElementById('popover-close').addEventListener('click', () => {
+            passagePopover.classList.remove('visible');
+        });
+
+        document.getElementById('popover-remove').addEventListener('click', () => {
+            if (popoverPassageId) removeSavedPassage(popoverPassageId);
+            passagePopover.classList.remove('visible');
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if (passagePopover.classList.contains('visible') && !passagePopover.contains(e.target) && !e.target.closest('mark.saved-passage')) {
+                passagePopover.classList.remove('visible');
+            }
+        });
+
+        function removeSavedPassage(id) {
+            AppState.savedPassages = AppState.savedPassages.filter(p => p.id !== id);
+            persistSavedPassages();
+
+            // Unwrap any matching <mark> elements in place (no scroll-resetting re-render)
+            document.querySelectorAll(`mark.saved-passage[data-passage-id="${id}"]`).forEach(mark => {
+                const parent = mark.parentNode;
+                if (!parent) return;
+                parent.replaceChild(document.createTextNode(mark.textContent), mark);
+                parent.normalize();
+            });
+
+            if (notesPanel.classList.contains('open')) renderNotesList();
+        }
+
+        // --- Notes panel list ----------------------------------------------------
+        function renderNotesList() {
+            const listEl = document.getElementById('notes-list');
+            const emptyEl = document.getElementById('notes-empty');
+            listEl.innerHTML = '';
+
+            if (AppState.savedPassages.length === 0) {
+                emptyEl.style.display = 'block';
+                return;
+            }
+            emptyEl.style.display = 'none';
+
+            const sorted = AppState.savedPassages.slice().sort((a, b) => new Date(a.dateSaved) - new Date(b.dateSaved));
+            sorted.forEach(passage => {
+                const li = document.createElement('li');
+                li.className = 'note-item';
+                const dateStr = new Date(passage.dateSaved).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                li.innerHTML = `
+                    <div class="note-meta">${escapeHtml(passage.chapterTitleAtSave || '')} · ${dateStr}</div>
+                    <blockquote>${escapeHtml(passage.quoteText)}</blockquote>
+                    ${passage.note ? `<div class="note-comment">${escapeHtml(passage.note)}</div>` : ''}
+                    <div class="note-actions">
+                        <button type="button" data-action="jump">Jump to passage</button>
+                        <button type="button" data-action="delete">Delete</button>
+                    </div>
+                `;
+                li.querySelector('[data-action="jump"]').addEventListener('click', () => {
+                    goToChapter(passage.chapterIndexAtSave);
+                    if (window.innerWidth < 1024) closeAllPanels();
+                });
+                li.querySelector('[data-action="delete"]').addEventListener('click', () => {
+                    removeSavedPassage(passage.id);
+                });
+                listEl.appendChild(li);
+            });
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // --- Export: Markdown & JSON ---------------------------------------------
+        function buildMarkdownExport() {
+            const sorted = AppState.savedPassages.slice().sort((a, b) => new Date(a.dateSaved) - new Date(b.dateSaved));
+            let md = `# ${AppState.bookTitle}\n`;
+            md += `*${AppState.bookAuthor}*\n\n`;
+            md += `${sorted.length} saved passage${sorted.length !== 1 ? 's' : ''} · exported ${new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}\n\n---\n\n`;
+            sorted.forEach(p => {
+                md += `> ${p.quoteText.replace(/\n/g, '\n> ')}\n\n`;
+                md += `— *${p.chapterTitleAtSave || 'Unknown section'}* · saved ${new Date(p.dateSaved).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}\n\n`;
+                if (p.note) md += `**Note:** ${p.note}\n\n`;
+                md += `---\n\n`;
+            });
+            return md;
+        }
+
+        function buildJSONExport() {
+            return JSON.stringify({
+                book: { title: AppState.bookTitle, author: AppState.bookAuthor, filename: AppState.bookFilename },
+                exportedAt: new Date().toISOString(),
+                passages: AppState.savedPassages
+            }, null, 2);
+        }
+
+        function flashNotesToast(msg) {
+            const toast = document.getElementById('notes-toast');
+            toast.textContent = msg;
+            setTimeout(() => { if (toast.textContent === msg) toast.textContent = ''; }, 2500);
+        }
+
+        function downloadFile(filename, content, mime) {
+            const blob = new Blob([content], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function safeFileBase() {
+            return (AppState.bookTitle || 'book').replace(/[^\w\-]+/g, '_').slice(0, 60) || 'book';
+        }
+
+        document.getElementById('copy-md-btn').addEventListener('click', async () => {
+            if (AppState.savedPassages.length === 0) { flashNotesToast('No saved passages yet.'); return; }
+            try {
+                await navigator.clipboard.writeText(buildMarkdownExport());
+                flashNotesToast('Copied to clipboard.');
+            } catch (e) { flashNotesToast('Could not copy — try downloading instead.'); }
+        });
+
+        document.getElementById('download-md-btn').addEventListener('click', () => {
+            if (AppState.savedPassages.length === 0) { flashNotesToast('No saved passages yet.'); return; }
+            downloadFile(safeFileBase() + '_highlights.md', buildMarkdownExport(), 'text/markdown');
+        });
+
+        document.getElementById('download-json-btn').addEventListener('click', () => {
+            if (AppState.savedPassages.length === 0) { flashNotesToast('No saved passages yet.'); return; }
+            downloadFile(safeFileBase() + '_highlights.json', buildJSONExport(), 'application/json');
+        });
+
+        // Init
         loadSettings();
-        // Ensure image toggle checkbox reflects class
         applyAllSettings();
     </script>
 </body>
