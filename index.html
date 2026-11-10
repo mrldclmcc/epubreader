@@ -922,10 +922,11 @@
             }
 
             const titleEls = getDCElements("title");
-            if (titleEls[0] && titleEls[0].textContent.trim()) {
-                AppState.bookTitle = titleEls[0].textContent.trim();
-                document.getElementById('book-title').textContent = AppState.bookTitle;
-            }
+if (titleEls[0] && titleEls[0].textContent.trim()) {
+    AppState.bookTitle = titleEls[0].textContent.trim();
+    document.getElementById('book-title').textContent = AppState.bookTitle;
+    document.title = AppState.bookTitle;   // ← the only new line
+}
 
             const OPF_NS = "http://www.idpf.org/2007/opf";
             const creatorEls = getDCElements("creator");
